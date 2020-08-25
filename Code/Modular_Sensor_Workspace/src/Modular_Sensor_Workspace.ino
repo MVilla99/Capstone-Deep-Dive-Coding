@@ -12,6 +12,8 @@
 #include <Adafruit_SSD1306.h>
 #include <Grove_Air_Quality_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <SPI.h>
+#include <SdFat.h>
 
 #include <Adafruit_MQTT.h>
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
@@ -23,6 +25,20 @@
 /*      PUT AIO KEYS IN IGNORE FILE       */
 
   #define OLED_RESET A0
+
+/*      for SD logging        */
+SdFat sd;
+SdFile file;
+
+unsigned long logTime;
+bool logStart; 
+
+int i;
+const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
+char fileName[13] = FILE_BASE_NAME "00.csv";
+  #define error(msg) sd.errorHalt(msg)
+
+
 /*      for subscribing | publishing        */
   TCPClient TheClient;
   Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
@@ -55,6 +71,16 @@ void setup() {
   senseAQ.init();
 
   mqtt.subscribe(&subData);
+
+  logStart = false;
+  if(!sd.begin(chipSelect,SD_SCK_MHZ(50))){
+    sd.initErrorHalt();
+  }
+  if(BASE_NAME_SIZE > 6){
+    Serial.println("FILE_BASE_NAME too long");
+    while(1);
+  }
+  file.printf("timestamp, whatever data"); // printing data header. "timestamp" and "data" are remanents
 }
 
 
@@ -112,4 +138,49 @@ void dustSensor(){
 
   } 
 
+}
+
+/*      function for writing to an SD card        */
+/* may need to tinker with this. seems to repeat logging data over and over (that was the original intended purpose)
+can probably just init like if(dangerTooHigh){ log2SD} */
+
+void log2SD(){
+  unsigned long startTime;
+  logStart = true;
+  if(logStart == true){
+    Serial.printf("starting data logging\n");
+    while(sd.exists(fileName)){
+      if(fileName[BASE_NAME_SIZE +1] != '9'){
+        fileName[BASE_NAME_SIZE +1]++;
+      }
+      else if (fileName[BASE_NAME_SIZE] != '9'){
+        fileName[BASE_NAME_SIZE +1] = '0';
+        fileName[BASE_NAME_SIZE]++;
+      }
+      else {
+        Serial.println("cant create file name");
+        while(1);
+      }
+    }
+    Serial.printf("logging to : %s \n",fileName);
+    startTime = micros();
+  }
+  while(logStart==true){
+    for(i=0;i<100;i++){
+      logTime = micros() - startTime;
+      Serial.print(".");
+      // put in functon for data. called logData2 in refrence code
+      if(!file.sync() || file.getWriteError()){
+        Serial.printf("write error");
+      }
+      // delay? 
+    }
+    logStart = false;
+    if(logStart == false){
+      file.close();
+      Serial.printf("done\n");
+      delay(2000);
+      Serial.printf("Ready for next data log \n");
+    }
+  }
 }
