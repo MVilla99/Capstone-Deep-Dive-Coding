@@ -14,6 +14,7 @@
 #include <Adafruit_BME280.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <Adafruit_Sensor.h>
 
 #include <Adafruit_MQTT.h>
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
@@ -45,18 +46,15 @@ char fileName[13] = FILE_BASE_NAME "00.csv";
   Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed
   Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds "); // put feed
 
+  #define SEALEVELPRESSURE_HPA (1013.25)
 Adafruit_BME280 bme; // for bme 
+
 Adafruit_SSD1306 display(OLED_RESET); // for oled
 AirQualitySensor senseAQ( ); // put sensor pin in here
 
 /*    for AirQualitySensor use    */
 int quality;
 int AQvalue;
-/*    for BME use   */
-float temp;
-float press;
-float hum;
-float alt;
 
 void setup() {
   Serial.begin(9600);
@@ -183,4 +181,16 @@ void log2SD(){
       Serial.printf("Ready for next data log \n");
     }
   }
+}
+
+void BMEreads(){
+  float temp;
+  float press;
+  float hum;
+  float alt;
+
+  temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
+  hum = bme.readHumidity();
+  press = (bme.readPressure() / 100.0F);
+  alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
