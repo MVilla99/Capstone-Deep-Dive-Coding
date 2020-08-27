@@ -23,20 +23,23 @@
 
   #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1833
+  #define AIO_USERNAME "mauriciov99" 
+  #define AIO_KEY "thisisarandomstringforakey" //replace
 /*      PUT AIO KEYS IN IGNORE FILE       */
 
   #define OLED_RESET A0
 
 /*      for SD logging        */
-SdFat sd;
-SdFile file;
 
 unsigned long logTime;
 bool logStart; 
-
+const int chipSelect = SS;
 int i;
-const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
+SdFat sd;
+SdFile file;
+#define FILE_BASE_NAME "SHData"
 char fileName[13] = FILE_BASE_NAME "00.csv";
+const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
   #define error(msg) sd.errorHalt(msg)
 
 
@@ -46,15 +49,21 @@ char fileName[13] = FILE_BASE_NAME "00.csv";
   Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed
   Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds "); // put feed
 
-  #define SEALEVELPRESSURE_HPA (1013.25)
+  
 Adafruit_BME280 bme; // for bme 
-
+  #define SEALEVELPRESSURE_HPA (1013.25)
 Adafruit_SSD1306 display(OLED_RESET); // for oled
-AirQualitySensor senseAQ( ); // put sensor pin in here
+AirQualitySensor senseAQ(A2); // put sensor pin in here
 
 /*    for AirQualitySensor use    */
 int quality;
 int AQvalue;
+
+/*    for BME use     */
+float temp;
+float press;
+float hum;
+float alt;
 
 void setup() {
   Serial.begin(9600);
@@ -67,10 +76,9 @@ void setup() {
 
   bme.begin(0x76);
   senseAQ.init();
-
+/*
   mqtt.subscribe(&subData);
 
-  logStart = false;
   if(!sd.begin(chipSelect,SD_SCK_MHZ(50))){
     sd.initErrorHalt();
   }
@@ -79,11 +87,15 @@ void setup() {
     while(1);
   }
   file.printf("timestamp, whatever data"); // printing data header. "timestamp" and "data" are remanents
+  */
 }
 
 
 void loop() {
-MQTT_connect(); // still need to impliment the subscribe/publish code.
+//MQTT_connect(); // still need to impliment the subscribe/publish code.
+BMEreads();
+Serial.printf("temp: %0.2f alt: %0.2f M press: %0.2f hum: %0.2f \n",temp,alt,press,hum);
+delay(5000);
 
 }
 
@@ -128,6 +140,7 @@ then just make a dim red emit in users peripherals.
 */
 
 /*        function for the dust sensor        */
+/*
 void dustSensor(){
   dustDuration = pulseIn( ,LOW); // put in the pin for dustsensor here. 
   lowPulseOccupance = lowPulseOccupancy+dustDuration;
@@ -137,6 +150,7 @@ void dustSensor(){
   } 
 
 }
+*/
 
 /*      function for writing to an SD card        */
 /* may need to tinker with this. seems to repeat logging data over and over (that was the original intended purpose)
@@ -184,11 +198,6 @@ void log2SD(){
 }
 
 void BMEreads(){
-  float temp;
-  float press;
-  float hum;
-  float alt;
-
   temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
   hum = bme.readHumidity();
   press = (bme.readPressure() / 100.0F);
