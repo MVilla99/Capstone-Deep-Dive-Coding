@@ -5,8 +5,6 @@
  * Date: 12 - August - 2020
  */
 
-/* CHANGE GITHUB BRANCH TO DEVELOPMENT INSTEAD OF MASTER
-*/
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_SSD1306.h>
@@ -33,10 +31,11 @@
 
 unsigned long logTime;
 bool logStart; 
-const int chipSelect = SS;
+//const int chipSelect = SS;
 int i;
-SdFat sd;
-SdFile file;
+SdFat SD; // changed from "sd" will ruin log2sd function
+File file;
+  #define SD_CS_PIN SS
 #define FILE_BASE_NAME "SHData"
 char fileName[13] = FILE_BASE_NAME "00.csv";
 const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
@@ -76,6 +75,12 @@ void setup() {
 
   bme.begin(0x76);
   senseAQ.init();
+
+  if(!SD.begin(SD_CS_PIN)){
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("SD init");
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
@@ -142,7 +147,7 @@ then just make a dim red emit in users peripherals.
 /*      function for writing to an SD card        */
 /* may need to tinker with this. seems to repeat logging data over and over (that was the original intended purpose)
 can probably just init like if(dangerTooHigh){ log2SD} */
-
+/*
 void log2SD(){ // can switch it over to the easier way i found, easier to log on time of an event. 
   unsigned long startTime;
   logStart = true;
@@ -183,10 +188,24 @@ void log2SD(){ // can switch it over to the easier way i found, easier to log on
     }
   }
 }
+*/
 
 void BMEreads(){
   temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
   hum = bme.readHumidity();
   press = (bme.readPressure() / 100.0F);
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
+}
+/*       function below is an exampled of formating the SD logging        */
+void SDlog(){
+  file = SD.open(" ", FILE_WRITE); // insert name of file. maybe find a way to generate new files?
+  // dont forget files arent auto generated from this code.
+  if(file){
+    Serial.println("writing to file");
+    file.println("insert text here");
+    file.close();
+  }
+  else {
+    Serial.println("error opening file");
+  }
 }
