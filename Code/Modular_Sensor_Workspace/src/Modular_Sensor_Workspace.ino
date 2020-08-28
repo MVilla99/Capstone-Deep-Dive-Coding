@@ -76,7 +76,7 @@ void setup() {
 
   bme.begin(0x76);
   senseAQ.init();
-/*
+/*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
   if(!sd.begin(chipSelect,SD_SCK_MHZ(50))){
@@ -99,7 +99,7 @@ delay(5000);
 
 }
 
-/*      function for starting up the connection to MQTT       */
+/*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
 void MQTT_connect(){
   int8_t ret;
   if(mqtt.connected()){ // if mqtt is connected, stop
@@ -139,24 +139,11 @@ if dangerous value. if "danger acknowledged" (make dangerAcknowleged a boolean)
 then just make a dim red emit in users peripherals. 
 */
 
-/*        function for the dust sensor        */
-/*
-void dustSensor(){
-  dustDuration = pulseIn( ,LOW); // put in the pin for dustsensor here. 
-  lowPulseOccupance = lowPulseOccupancy+dustDuration;
-
-  if((millis()-dustStartTime)>     ){ // put in a value assigned to time. in plant water it was "replace this time"
-
-  } 
-
-}
-*/
-
 /*      function for writing to an SD card        */
 /* may need to tinker with this. seems to repeat logging data over and over (that was the original intended purpose)
 can probably just init like if(dangerTooHigh){ log2SD} */
 
-void log2SD(){
+void log2SD(){ // can switch it over to the easier way i found, easier to log on time of an event. 
   unsigned long startTime;
   logStart = true;
   if(logStart == true){

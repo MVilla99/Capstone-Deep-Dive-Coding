@@ -10,24 +10,26 @@
  * Author:
  * Date:
  */
-#include <Adafruit_SSD1306.h>
-#include <Grove_Air_quality_Sensor.h>
-#include <SdFat.h>
-#include <SPI.h>
-  /*  for sd card   */
 void setup();
 void loop();
 void airQuality();
 void blink();
-#line 12 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/mobile_air_quality_testing_platform/src/mobile_air_quality_testing_platform.ino"
+#line 7 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/mobile_air_quality_testing_platform/src/mobile_air_quality_testing_platform.ino"
+SYSTEM_MODE(SEMI_AUTOMATIC)
+#include <Adafruit_SSD1306.h>
+#include <Grove_Air_quality_Sensor.h>
+#include <SdFat.h>
+#include <SPI.h> 
+  /*  for sd card   */
 unsigned long logTime;
   #define SD_CS_PIN SS
 SdFat sd;
 File file;
+/*
   #define FILE_BASE_NAME "aqdata"
 char fileName[13] = FILE_BASE_NAME "00.csv";
 const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
-  #define error(msg) sd.errorHalt(msg)
+  #define error(msg) sd.errorHalt(msg) */
   /* for air quality  */
 AirQualitySensor Aq(A2); // put sensor pin in here
 int quality;
@@ -35,7 +37,7 @@ int AQvalue;
 
 int aqRead;
 
-SYSTEM_MODE(SEMI_AUTOMATIC);
+
 // setup() runs once, when the device is first turned on.
 void setup() {
   // Put initialization like pinMode and begin functions here.
@@ -65,8 +67,10 @@ if(switchValue == 1){
       Serial.println("file opened!");
       file.printf("air quality value: %i \n", aqRead);
       Serial.println("printing...");
-      delay(8000);
+      delay(9600);
       file.close();
+      Serial.println("printed!");
+      Serial.println();
       blink();
     }
 }
@@ -100,11 +104,11 @@ void airQuality(){
 
 void blink(){
   digitalWrite(A3, LOW);
-  delay(50);
+  delay(100);
   digitalWrite(A3, HIGH);
-  delay(50);
+  delay(100);
   digitalWrite(A3, LOW);
-  delay(50);
+  delay(100);
   digitalWrite(A3, HIGH);
-  delay(50);
+  delay(100);
 }
