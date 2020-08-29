@@ -13,6 +13,8 @@
 #include <SPI.h>
 #include <SdFat.h>
 #include <Adafruit_Sensor.h>
+#include <neopixel.h>
+#include <colors.h>
 
 #include <Adafruit_MQTT.h>
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
@@ -53,6 +55,12 @@ Adafruit_BME280 bme; // for bme
   #define SEALEVELPRESSURE_HPA (1013.25)
 Adafruit_SSD1306 display(OLED_RESET); // for oled
 AirQualitySensor senseAQ(A2); // put sensor pin in here
+
+/*    for NeoPixels       */
+  #define PIXEL_PIN // add pin for pixels
+  #define PIXEL_COUNT // put number of pixels
+  #define PIXEL_TYPE WS2812B
+Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 
 /*    for AirQualitySensor use    */
 int quality;
@@ -136,12 +144,15 @@ void airQualitySensor(){
   }
   else if(quality == AirQualitySensor::FRESH_AIR){
     qualityValue = 1;
+    // write different neopixel functions for, dim warning, high warning, blink warning
   }
 }
 /* for the above function, maybe tie leds or neopixels to the module
 tie a neopixel into the actual transducer frame, only blink red in users peripherals
 if dangerous value. if "danger acknowledged" (make dangerAcknowleged a boolean) 
 then just make a dim red emit in users peripherals. 
+
+for the neoPixels, i can write a header file for the colors 
 */
 
 /*      function for writing to an SD card        */
@@ -260,4 +271,29 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
     // file.close(): ? do i need this in case none of the functions are enabled. 
   }
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
+}
+
+void highQualityLED(){
+  pixel.setPixelColor(green);
+  pixel.setBrightness(40);
+  pixel.show();
+}
+void midQualityLED(){
+  pixel.setPixelColor(yellow);
+  pixel.setBrightness(75);
+  pixel.show();
+}
+void lowQualityLED(){
+  pixel.setPixelColor(orange);
+  pixel.setBrightness(100);
+  pixel.show();
+}
+void DangerLED(){
+unsigned long pixStart;
+unsigned long pixEnd;
+  pixStart = millis();
+  pixel.setPixelColor(red);
+  pixel.setBrightness(200);
+  pixel.show();
+
 }
