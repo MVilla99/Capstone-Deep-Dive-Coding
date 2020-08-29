@@ -30,17 +30,11 @@
   #define OLED_RESET A0
 
 /*      for SD logging        */
-
-unsigned long logTime; // dont need this one either. why am i commenting this out instead of deleting it?
-bool logStart;  // dont think i need this bad boy too 
-//const int chipSelect = SS; // dont need since defined chip select
+lect
 int i;
-SdFat SD; // changed from "sd" will ruin log2sd function
+SdFat SD;
 File file;
   #define SD_CS_PIN SS
-#define FILE_BASE_NAME "SHData" // might not need
-char fileName[13] = FILE_BASE_NAME "00.csv"; // might not need 
-const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1; // might not need. this line, and the above two lines are for the old sd write function. 
   #define error(msg) sd.errorHalt(msg)
 
 
@@ -155,52 +149,6 @@ then just make a dim red emit in users peripherals.
 for the neoPixels, i can write a header file for the colors 
 */
 
-/*      function for writing to an SD card        */
-/* may need to tinker with this. seems to repeat logging data over and over (that was the original intended purpose)
-can probably just init like if(dangerTooHigh){ log2SD} */
-/*
-void log2SD(){ // can switch it over to the easier way i found, easier to log on time of an event. 
-  unsigned long startTime;
-  logStart = true;
-  if(logStart == true){
-    Serial.printf("starting data logging\n");
-    while(sd.exists(fileName)){
-      if(fileName[BASE_NAME_SIZE +1] != '9'){
-        fileName[BASE_NAME_SIZE +1]++;
-      }
-      else if (fileName[BASE_NAME_SIZE] != '9'){
-        fileName[BASE_NAME_SIZE +1] = '0';
-        fileName[BASE_NAME_SIZE]++;
-      }
-      else {
-        Serial.println("cant create file name");
-        while(1);
-      }
-    }
-    Serial.printf("logging to : %s \n",fileName);
-    startTime = micros();
-  }
-  while(logStart==true){
-    for(i=0;i<100;i++){
-      logTime = micros() - startTime;
-      Serial.print(".");
-      // put in functon for data. called logData2 in refrence code
-      if(!file.sync() || file.getWriteError()){
-        Serial.printf("write error");
-      }
-      // delay? 
-    }
-    logStart = false;
-    if(logStart == false){
-      file.close();
-      Serial.printf("done\n");
-      delay(2000);
-      Serial.printf("Ready for next data log \n");
-    }
-  }
-}
-*/
-
 void BMEreads(){
   temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
   hum = bme.readHumidity();
@@ -273,6 +221,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
+// i can maybe make this a switch case statement and embed it i warning message function
 void highQualityLED(){
   pixel.setPixelColor(green);
   pixel.setBrightness(40);
