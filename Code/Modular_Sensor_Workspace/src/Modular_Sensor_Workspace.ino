@@ -29,16 +29,16 @@
 
 /*      for SD logging        */
 
-unsigned long logTime;
-bool logStart; 
-//const int chipSelect = SS;
+unsigned long logTime; // dont need this one either. why am i commenting this out instead of deleting it?
+bool logStart;  // dont think i need this bad boy too 
+//const int chipSelect = SS; // dont need since defined chip select
 int i;
 SdFat SD; // changed from "sd" will ruin log2sd function
 File file;
   #define SD_CS_PIN SS
-#define FILE_BASE_NAME "SHData"
-char fileName[13] = FILE_BASE_NAME "00.csv";
-const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1;
+#define FILE_BASE_NAME "SHData" // might not need
+char fileName[13] = FILE_BASE_NAME "00.csv"; // might not need 
+const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) -1; // might not need. this line, and the above two lines are for the old sd write function. 
   #define error(msg) sd.errorHalt(msg)
 
 
@@ -57,7 +57,7 @@ AirQualitySensor senseAQ(A2); // put sensor pin in here
 /*    for AirQualitySensor use    */
 int quality;
 int AQvalue;
-
+int qualityValue; 
 /*    for BME use     */
 float temp;
 float press;
@@ -126,16 +126,16 @@ void airQualitySensor(){
   AQvalue = senseAQ.getValue();
 
   if(quality == AirQualitySensor::FORCE_SIGNAL){
-    // do something for very high pollution
+    qualityValue = 4;
   }
   else if(quality == AirQualitySensor::HIGH_POLLUTION){
-    // do something for high pollution
+    qualityValue = 3;
   }
   else if(quality == AirQualitySensor::LOW_POLLUTION){
-    // do something for low pollution
+    qualityValue = 2;
   }
   else if(quality == AirQualitySensor::FRESH_AIR){
-    // do something for fresh air
+    qualityValue = 1;
   }
 }
 /* for the above function, maybe tie leds or neopixels to the module
@@ -212,20 +212,52 @@ void SDlog(){
 
 // time for some big brain things 
 int s; // variable for MQ-9
-int n; // variable for AQ
+int n; // variable for AQ    i changed this to a global variable called "qualityValue" 
 void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
+  file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
   if(n>=3 && s<=2){
     // look up syntax for ISR 
-    // mp3 file for high pollution  
+    // mp3 file for high pollution
+    if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
+      Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
+      file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor 
+      file.close();
+    }
+    if(!file){ // if theres an error with the file, log it
+      Serial.println("AQ write error");
+      file.println("AQ write error");
+      file.close();
+    }
   }
   else if(n<=2&& s>=3){
     // ISR 
     // mp3 file for high MQ-9 reading
+    if(file){
+      Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
+      file.printf("MQ-9 read: %i \n", s);
+      file.close();
+    }
+    if(!file){
+      Serial.println("MQ-9 write error");
+      file.println("MQ-9 write error");
+      file.close();
+    }
   }
   else if(n>=3 && s>=3 && temp>=100){
     // ISR 
     // mp3 file for "all sensors above nominal parameters"
+    if(file){
+      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp);
+      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
+      file.close();
+    }
+    if(!file){
+      Serial.println("High danger. write error.");
+      file.println("High danger write error.");
+      file.close();
+    }
+    // file.close(): ? do i need this in case none of the functions are enabled. 
   }
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
