@@ -209,3 +209,23 @@ void SDlog(){
     Serial.println("error opening file");
   }
 }
+
+// time for some big brain things 
+int s; // variable for MQ-9
+int n; // variable for AQ
+void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
+// assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
+  if(n>=3 && s<=2){
+    // look up syntax for ISR 
+    // mp3 file for high pollution  
+  }
+  else if(n<=2&& s>=3){
+    // ISR 
+    // mp3 file for high MQ-9 reading
+  }
+  else if(n>=3 && s>=3 && temp>=100){
+    // ISR 
+    // mp3 file for "all sensors above nominal parameters"
+  }
+  // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
+}
