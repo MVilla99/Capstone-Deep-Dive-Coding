@@ -4,7 +4,8 @@
  * Author:
  * Date:
  */
-int Mpin =  ;
+
+int Mpin =A1;
 int dB;
 int adc;
 // setup() runs once, when the device is first turned on.
@@ -19,9 +20,11 @@ void setup() {
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // The core of your code will likely live here.
- 
-}
+  adc = analogRead(Mpin);
+  Serial.println(adc);
 
+}
+/*
 void regressionCalc(){
   adc = analogRead(Mpin);
   dB = (adc + )/  ; // converting ADC val to dB using regression val from excel
@@ -32,3 +35,4 @@ void regressionCalc(){
     delay(100);
   }
 }
+*/

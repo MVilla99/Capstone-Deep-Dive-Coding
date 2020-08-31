@@ -14,7 +14,7 @@
 #include <SdFat.h>
 #include <Adafruit_Sensor.h>
 #include <neopixel.h>
-#include <colors.h>
+#include "colors.h"
 
 #include <Adafruit_MQTT.h>
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
@@ -50,10 +50,11 @@ Adafruit_SSD1306 display(OLED_RESET); // for oled
 AirQualitySensor senseAQ(A2); // put sensor pin in here
 
 /*    for NeoPixels       */
-  #define PIXEL_PIN // add pin for pixels
-  #define PIXEL_COUNT // put number of pixels
+  #define PIXEL_PIN A0// add pin for pixels
+  #define PIXEL_COUNT 2// put number of pixels
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
+int pixNum = 1;
 
 /*    for AirQualitySensor use    */
 int quality;
@@ -73,6 +74,9 @@ void setup() {
   display.display();
   display.clearDisplay();
   display.display();
+
+  pixel.begin();
+  pixel.show();
 
   bme.begin(0x76);
   senseAQ.init();
@@ -99,10 +103,7 @@ void setup() {
 
 void loop() {
 //MQTT_connect(); // still need to impliment the subscribe/publish code.
-BMEreads();
-Serial.printf("temp: %0.2f alt: %0.2f M press: %0.2f hum: %0.2f \n",temp,alt,press,hum);
-delay(5000);
-
+photoResistor();
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -167,13 +168,12 @@ void SDlog(){
     Serial.println("error opening file");
   }
 }
-
-// time for some big brain things 
+ 
 int s; // variable for MQ-9
 void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
-  if(n>=3 && s<=2){
+  if(qualityValue>=3 && s<=2){
     // look up syntax for ISR 
     // mp3 file for high pollution
     if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
@@ -187,7 +187,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
     }
   }
-  else if(n<=2&& s>=3){
+  else if(qualityValue<=2&& s>=3){
     // ISR 
     // mp3 file for high MQ-9 reading
     if(file){
@@ -201,7 +201,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
     }
   }
-  else if(n>=3 && s>=3 && temp>=100){
+  else if(qualityValue>=3 && s>=3 && temp>=100){
     // ISR 
     // mp3 file for "all sensors above nominal parameters"
     if(file){
@@ -210,7 +210,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
     }
     if(!file){
-      Serial.println("High danger. write error.");
+      Serial.println("High danger write error.");
       file.println("High danger write error.");
       file.close();
     }
@@ -219,19 +219,22 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
-// i can maybe make this a switch case statement and embed it i warning message function
+
 void highQualityLED(){
-  pixel.setPixelColor(green);
+  pixel.clear();
+  pixel.setPixelColor(pixNum, green);
   pixel.setBrightness(40);
   pixel.show();
 }
 void midQualityLED(){
-  pixel.setPixelColor(yellow);
+  pixel.clear();
+  pixel.setPixelColor(pixNum, yellow);
   pixel.setBrightness(75);
   pixel.show();
 }
 void lowQualityLED(){
-  pixel.setPixelColor(orange);
+  pixel.clear();
+  pixel.setPixelColor(pixNum, orange);
   pixel.setBrightness(100);
   pixel.show();
 }
@@ -239,8 +242,19 @@ void DangerLED(){
 unsigned long pixStart;
 unsigned long pixEnd;
   pixStart = millis();
-  pixel.setPixelColor(red);
+  pixel.clear();
+  pixel.setPixelColor(pixNum, red); // forgot to put in the actual pixel number for all the above functions 
   pixel.setBrightness(200);
   pixel.show();
-
+  pixEnd = (millis()-pixStart); // keep working on this one
+  if(pixEnd>=1000){
+    pixel.setBrightness(0);
+    pixel.show();    
+  } 
+}
+void photoResistor(){
+  int pVal;
+  int pPin = A1;
+  pVal = analogRead(pPin);
+  Serial.println(pVal);
 }
