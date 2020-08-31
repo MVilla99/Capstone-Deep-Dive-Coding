@@ -38,6 +38,7 @@ void highQualityLED();
 void midQualityLED();
 void lowQualityLED();
 void DangerLED();
+void ledBrightness();
 #line 24 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Modular_Sensor_Workspace/src/Modular_Sensor_Workspace.ino"
 #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1833
@@ -73,6 +74,7 @@ AirQualitySensor senseAQ(A2); // put sensor pin in here
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int pixNum = 1;
+int luminoscity;
 
 /*    for AirQualitySensor use    */
 int quality;
@@ -121,12 +123,8 @@ void setup() {
 
 void loop() {
 //MQTT_connect(); // still need to impliment the subscribe/publish code.
-highQualityLED();
-delay(2000);
-midQualityLED();
-delay(2000);
-lowQualityLED();
-delay(2000);
+  ledBrightness();
+  highQualityLED();
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -192,7 +190,6 @@ void SDlog(){
   }
 }
  
-// replace n with qualityValue
 int s; // variable for MQ-9
 void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
@@ -243,23 +240,23 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
-// i can maybe make this a switch case statement and embed it i warning message function
+
 void highQualityLED(){
   pixel.clear();
   pixel.setPixelColor(pixNum, green);
-  pixel.setBrightness(40);
+  pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void midQualityLED(){
   pixel.clear();
   pixel.setPixelColor(pixNum, yellow);
-  pixel.setBrightness(75);
+  pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void lowQualityLED(){
   pixel.clear();
   pixel.setPixelColor(pixNum, orange);
-  pixel.setBrightness(100);
+  pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void DangerLED(){
@@ -268,11 +265,21 @@ unsigned long pixEnd;
   pixStart = millis();
   pixel.clear();
   pixel.setPixelColor(pixNum, red); // forgot to put in the actual pixel number for all the above functions 
-  pixel.setBrightness(200);
+  pixel.setBrightness(luminoscity);
   pixel.show();
   pixEnd = (millis()-pixStart); // keep working on this one
   if(pixEnd>=1000){
     pixel.setBrightness(0);
     pixel.show();    
   } 
+}
+
+  // photoresistor fully covered is at 37k
+  // with flourescent lights its 22k
+  // with flashlight on top of it, its ~20 
+void ledBrightness(){
+  int pVal;
+  int pPin = A1;
+  pVal = analogRead(pPin);
+  luminoscity = map(pVal, 40, 3000,10,255);
 }
