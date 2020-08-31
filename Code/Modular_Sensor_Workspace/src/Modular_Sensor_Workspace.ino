@@ -30,7 +30,6 @@
   #define OLED_RESET A0
 
 /*      for SD logging        */
-lect
 int i;
 SdFat SD;
 File file;
@@ -171,7 +170,6 @@ void SDlog(){
 
 // time for some big brain things 
 int s; // variable for MQ-9
-int n; // variable for AQ    i changed this to a global variable called "qualityValue" 
 void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
@@ -207,7 +205,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
     // ISR 
     // mp3 file for "all sensors above nominal parameters"
     if(file){
-      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp);
+      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
       file.close();
     }
