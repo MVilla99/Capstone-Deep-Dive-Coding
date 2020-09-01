@@ -31,7 +31,7 @@ void loop() {
   // The core of your code will likely live here.
   adc = analogRead(Mpin);
   Serial.println(adc);
-
+  delay(100);
 }
 /*
 void regressionCalc(){

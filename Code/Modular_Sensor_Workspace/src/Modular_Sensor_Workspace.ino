@@ -15,6 +15,7 @@
 #include <Adafruit_Sensor.h>
 #include <neopixel.h>
 #include "colors.h"
+#include <DFRobotDFPlayerMini.h>
 
 #include <Adafruit_MQTT.h>
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
@@ -27,7 +28,11 @@
   #define AIO_KEY "thisisarandomstringforakey" //replace
 /*      PUT AIO KEYS IN IGNORE FILE       */
 
-  #define OLED_RESET A0
+  #define OLED_RESET A0 // for oled display
+
+/*      for DFRobot mp3 player      */
+DFRobotDFPlayerMini myDFP;
+
 
 /*      for SD logging        */
 int i;
@@ -69,6 +74,7 @@ float alt;
 
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600); // for using with the DFRobot player
   delay(100); // waiting for serial monitor to initialize 
   Wire.begin();
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -87,6 +93,11 @@ void setup() {
     return;
   }
   Serial.println("SD init");
+  if(!myDFP.begin(Serial1)){
+    Serial.println("DFPlayer init failed");
+    while(true);
+  }
+  Serial.println("DFPlayer init");
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
@@ -176,7 +187,6 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
   if(qualityValue>=3 && s<=2){
-    // look up syntax for ISR 
     // mp3 file for high pollution
     if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
@@ -190,7 +200,6 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
     }
   }
   else if(qualityValue<=2&& s>=3){
-    // ISR 
     // mp3 file for high MQ-9 reading
     if(file){
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
@@ -203,8 +212,7 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
     }
   }
-  else if(qualityValue>=3 && s>=3 && temp>=100){
-    // ISR 
+  else if(qualityValue>=3 && s>=3 && temp>=100){ 
     // mp3 file for "all sensors above nominal parameters"
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
@@ -221,15 +229,15 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
-void ledBrightness(){
+void ledBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
   int pPin = A1;
   pVal = analogRead(pPin);
   luminoscity = map(pVal, 40, 3000,10,255);
-}
-void highQualityLED(){
+}  
+void highQualityLED(){ // change setPixelColor to pixel fill for all the below functions
   pixel.clear();
-  pixel.setPixelColor(pixNum, green);
+  pixel.setPixelColor(pixNum, green); // can get rid of pixNum if I use pixel.fill instead
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
@@ -263,3 +271,6 @@ unsigned long pixEnd;
   // photoresistor fully covered is at 37k
   // with flourescent lights its 22k
   // with flashlight on top of it, its ~20 
+void Mp3Commands(){
+
+}
