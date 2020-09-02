@@ -120,7 +120,7 @@ void loop() {
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
-void MQTT_connect(){
+void MQTTConnect(){
   int8_t ret;
   if(mqtt.connected()){ // if mqtt is connected, stop
     return;
@@ -136,7 +136,7 @@ void MQTT_connect(){
 }
 
 /*        function for the airquality sensor        */
-void airQualitySensor(){
+void AirQuality(){
   quality = senseAQ.slope();
   AQvalue = senseAQ.getValue();
 
@@ -162,14 +162,14 @@ then just make a dim red emit in users peripherals.
 for the neoPixels, i can write a header file for the colors 
 */
 
-void BMEreads(){
+void BMEread(){
   temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
   hum = bme.readHumidity();
   press = (bme.readPressure() / 100.0F);
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
 /*       function below is an exampled of formating the SD logging        */
-void SDlog(){
+void SDLog(){
   file = SD.open(" ", FILE_WRITE); // insert name of file. maybe find a way to generate new files?
   // dont forget files arent auto generated from this code.
   if(file){
@@ -183,7 +183,7 @@ void SDlog(){
 }
  
 int s; // variable for MQ-9
-void warningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
+void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
   if(qualityValue>=3 && s<=2){
@@ -205,11 +205,16 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
       file.printf("MQ-9 read: %i \n", s);
       file.close();
+      myDFP.playFolder( , ); // for this function, its format is folder name, then mp3 file name, which needs to start with an integer between 0-255
+      // could also use myDFP.playMP3Folder, but the SD card would need a specific MP3 folder to jump to, then the file name would be an integer between 0-65535
+      delay( ); // each DFP audio file needs a delay after to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
       file.println("MQ-9 write error");
       file.close();
+      myDFP.playFolder( , );
+      delay( );
     }
   }
   else if(qualityValue>=3 && s>=3 && temp>=100){ 
@@ -218,36 +223,40 @@ void warningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
       file.close();
+      myDFP.playFolder( , );
+      delay( );
     }
     if(!file){
       Serial.println("High danger write error.");
       file.println("High danger write error.");
       file.close();
+      myDFP.playFolder( , ); // this might loop too much and keep delaying/playing. might not need this function of (!file)
+      delay( ); 
     }
     // file.close(): ? do i need this in case none of the functions are enabled. 
   }
   // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
-void ledBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
+void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
   int pPin = A1;
   pVal = analogRead(pPin);
   luminoscity = map(pVal, 40, 3000,10,255);
 }  
-void highQualityLED(){ // change setPixelColor to pixel fill for all the below functions
+void HighQualityLED(){ // change setPixelColor to pixel fill for all the below functions
   pixel.clear();
   pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill 
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
-void midQualityLED(){
+void MidQualityLED(){
   pixel.clear();
   pixel.setPixelColor(pixNum, yellow);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
-void lowQualityLED(){
+void LowQualityLED(){
   pixel.clear();
   pixel.setPixelColor(pixNum, orange);
   pixel.setBrightness(luminoscity);
@@ -271,6 +280,3 @@ unsigned long pixEnd;
   // photoresistor fully covered is at 37k
   // with flourescent lights its 22k
   // with flashlight on top of it, its ~20 
-void Mp3Commands(){
-
-}
