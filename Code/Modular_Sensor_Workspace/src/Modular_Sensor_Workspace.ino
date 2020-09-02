@@ -237,7 +237,7 @@ void ledBrightness(){ // function for using the photoresistor to adjust the brig
 }  
 void highQualityLED(){ // change setPixelColor to pixel fill for all the below functions
   pixel.clear();
-  pixel.setPixelColor(pixNum, green); // can get rid of pixNum if I use pixel.fill instead
+  pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill 
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
