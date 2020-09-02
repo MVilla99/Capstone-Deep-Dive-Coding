@@ -45,8 +45,10 @@ File file;
 /*      for subscribing | publishing        */
   TCPClient TheClient;
   Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
-  Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed
-  Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds "); // put feed
+  Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
+  Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
+  Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
+  Adafruit_MQTT_Publish pubData = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
 
   
 Adafruit_BME280 bme; // for bme 
@@ -114,9 +116,8 @@ void setup() {
 
 
 void loop() {
-//MQTT_connect(); // still need to impliment the subscribe/publish code.
-  ledBrightness();
-  highQualityLED();
+//MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed.
+
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -163,12 +164,12 @@ for the neoPixels, i can write a header file for the colors
 */
 
 void BMEread(){
-  temp = (bme.readTemperature()* 9/5)+32; // converted to fahrenheit becasue 'merica
+  temp = (bme.readTemperature()* 9/5)+32;
   hum = bme.readHumidity();
   press = (bme.readPressure() / 100.0F);
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
-/*       function below is an exampled of formating the SD logging        */
+/*       function below is an exampled of formating the SD logging        */      // FUNCTION DEPRECATED
 void SDLog(){
   file = SD.open(" ", FILE_WRITE); // insert name of file. maybe find a way to generate new files?
   // dont forget files arent auto generated from this code.
@@ -190,7 +191,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     // mp3 file for high pollution
     if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
-      file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor 
+      file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor. if the particle is going to be connected, then i can use the timeSync stuff
       file.close();
     }
     if(!file){ // if theres an error with the file, log it
@@ -207,7 +208,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
       myDFP.playFolder( , ); // for this function, its format is folder name, then mp3 file name, which needs to start with an integer between 0-255
       // could also use myDFP.playMP3Folder, but the SD card would need a specific MP3 folder to jump to, then the file name would be an integer between 0-65535
-      delay( ); // each DFP audio file needs a delay after to let the audio file play
+      delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
@@ -243,6 +244,10 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
   int pPin = A1;
   pVal = analogRead(pPin);
   luminoscity = map(pVal, 40, 3000,10,255);
+  // photoresistor fully covered is at 37k
+  // with flourescent lights its 22k
+  // with flashlight on top of it, its ~20 
+
 }  
 void HighQualityLED(){ // change setPixelColor to pixel fill for all the below functions
   pixel.clear();
@@ -276,7 +281,3 @@ unsigned long pixEnd;
     pixel.show();    
   } 
 }
-
-  // photoresistor fully covered is at 37k
-  // with flourescent lights its 22k
-  // with flashlight on top of it, its ~20 
