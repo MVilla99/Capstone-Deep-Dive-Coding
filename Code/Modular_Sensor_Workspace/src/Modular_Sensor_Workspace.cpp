@@ -40,6 +40,7 @@ void HighQualityLED();
 void MidQualityLED();
 void LowQualityLED();
 void DangerLED();
+void MQTTPublish();
 #line 25 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Modular_Sensor_Workspace/src/Modular_Sensor_Workspace.ino"
 #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1833
@@ -62,13 +63,13 @@ File file;
 
 
 /*      for subscribing | publishing        */
-  TCPClient TheClient;
-  Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
-  Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
-  Adafruit_MQTT_Publish pubData1 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
-  Adafruit_MQTT_Publish pubData2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
-  Adafruit_MQTT_Publish pubData3 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
-
+TCPClient TheClient;
+Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
+Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
+Adafruit_MQTT_Publish PubBME = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
+Adafruit_MQTT_Publish PubMQ9 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
+Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
+unsigned long last;
   
 Adafruit_BME280 bme; // for bme 
   #define SEALEVELPRESSURE_HPA (1013.25)
@@ -76,11 +77,10 @@ Adafruit_SSD1306 display(OLED_RESET); // for oled
 AirQualitySensor senseAQ(A2); // put sensor pin in here
 
 /*    for NeoPixels       */
-  #define PIXEL_PIN A0// add pin for pixels
+  #define PIXEL_PIN A4// add pin for pixels
   #define PIXEL_COUNT 2// put number of pixels
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
-int pixNum = 1;
 int luminoscity;
 
 /*    for AirQualitySensor use    */
@@ -104,24 +104,28 @@ void setup() {
   display.clearDisplay();
   display.display();
 
+  last = 0; // for MQTT subscription timer. 
+
   pixel.begin();
   pixel.show();
 
   bme.begin(0x76);
   senseAQ.init();
 
-/*
+/*    // commented out for testing the mp3 player
   if(!SD.begin(SD_CS_PIN)){
     Serial.println("initialization failed!");
     return;
   }
   */
-  Serial.println("SD init");
+ /*
+  Serial.println("SD init"); // commented out while testing other functions
   if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
   }
   Serial.println("DFPlayer init");
+  */
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
@@ -138,10 +142,8 @@ void setup() {
 
 
 void loop() {
-//MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed.
-  myDFP.playFolder(11, 1);
-  Serial.println("playing...");
-  delay(5000);  
+//MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed
+  HighQualityLED();
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -200,7 +202,7 @@ void SDLog(){
   }
 }
  
-int s; // variable for MQ-9
+int s; // stand-in variable for MQ-9
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
@@ -221,15 +223,13 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
       file.printf("MQ-9 read: %i \n", s);
       file.close();
-     // myDFP.playFolder( , ); // for this function, its format is folder name, then mp3 file name, which needs to start with an integer between 0-255
-      // could also use myDFP.playMP3Folder, but the SD card would need a specific MP3 folder to jump to, then the file name would be an integer between 0-65535
      // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
       file.println("MQ-9 write error");
       file.close();
-     // myDFP.playFolder( , );
+     // myDFP.playFolder(11, );
      // delay( );
     }
   }
@@ -238,19 +238,18 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
       file.close();
-     // myDFP.playFolder( , );
+     // myDFP.playFolder(11, );
      // delay( );
     }
     if(!file){
       Serial.println("High danger write error.");
       file.println("High danger write error.");
       file.close();
-     // myDFP.playFolder( , ); // this might loop too much and keep delaying/playing. might not need this function of (!file)
+     // myDFP.playFolder(11, ); // this might loop too much and keep delaying/playing. might not need this function of (!file)
      // delay( ); 
     }
     // file.close(): ? do i need this in case none of the functions are enabled. 
   }
-  // could also write a statement for "high decibel reading" warning could read as follows; "decibel reading above nominal parameters, ear protection reccomended"
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -263,27 +262,43 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
   // with flashlight on top of it, its ~20 
 
 }  
-void HighQualityLED(){ // change setPixelColor to pixel fill for all the below functions
+void HighQualityLED(){
   pixel.clear();
-  //pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill 
-  pixel.setBrightness(luminoscity);
+  //pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill
+  pixel.setPixelColor(0,green);
+  pixel.setPixelColor(1,green);
+  pixel.setBrightness(100); // change back to luminoscity 
   pixel.show();
 }
 void MidQualityLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, yellow);
+  pixel.setPixelColor(0, yellow);
+  pixel.setPixelColor(1, yellow);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void LowQualityLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, orange);
+  pixel.setPixelColor(0, orange);
+  pixel.setPixelColor(1, orange);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void DangerLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, red); // forgot to put in the actual pixel number for all the above functions 
+  pixel.setPixelColor(0, red); // forgot to put in the actual pixel number for all the above functions 
+  pixel.setPixelColor(1, red);
   pixel.setBrightness(luminoscity);
   pixel.show();
+}
+
+void MQTTPublish(){ // function for publishing sensor values to adafruit.io
+  if((millis()-last>15000)){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
+    if(mqtt.Update()){
+      PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
+      PubMQ9.publish(s); // put "s" in for now as its the stand-in variable for the MQ-9
+      PubAQ.publish(qualityValue);
+    }
+  last = millis();
+  }
 }

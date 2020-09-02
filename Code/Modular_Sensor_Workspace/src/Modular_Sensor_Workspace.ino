@@ -43,13 +43,13 @@ File file;
 
 
 /*      for subscribing | publishing        */
-  TCPClient TheClient;
-  Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
-  Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
-  Adafruit_MQTT_Publish PubBME = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
-  Adafruit_MQTT_Publish PubMQ9 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
-  Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
-
+TCPClient TheClient;
+Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
+Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
+Adafruit_MQTT_Publish PubBME = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
+Adafruit_MQTT_Publish PubMQ9 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
+Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
+unsigned long last;
   
 Adafruit_BME280 bme; // for bme 
   #define SEALEVELPRESSURE_HPA (1013.25)
@@ -57,11 +57,10 @@ Adafruit_SSD1306 display(OLED_RESET); // for oled
 AirQualitySensor senseAQ(A2); // put sensor pin in here
 
 /*    for NeoPixels       */
-  #define PIXEL_PIN A0// add pin for pixels
+  #define PIXEL_PIN A4// add pin for pixels
   #define PIXEL_COUNT 2// put number of pixels
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
-int pixNum = 1;
 int luminoscity;
 
 /*    for AirQualitySensor use    */
@@ -85,6 +84,8 @@ void setup() {
   display.clearDisplay();
   display.display();
 
+  last = 0; // for MQTT subscription timer. 
+
   pixel.begin();
   pixel.show();
 
@@ -97,12 +98,14 @@ void setup() {
     return;
   }
   */
-  Serial.println("SD init");
+ /*
+  Serial.println("SD init"); // commented out while testing other functions
   if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
   }
   Serial.println("DFPlayer init");
+  */
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
@@ -119,10 +122,8 @@ void setup() {
 
 
 void loop() {
-//MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed.
-  myDFP.playFolder(11, 1);
-  Serial.println("playing...");
-  delay(5000);  
+//MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed
+  HighQualityLED();
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -181,7 +182,7 @@ void SDLog(){
   }
 }
  
-int s; // variable for MQ-9
+int s; // stand-in variable for MQ-9
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
@@ -243,31 +244,35 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
 }  
 void HighQualityLED(){
   pixel.clear();
-  //pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill 
-  pixel.setBrightness(luminoscity);
+  //pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill
+  pixel.setPixelColor(0,green);
+  pixel.setPixelColor(1,green);
+  pixel.setBrightness(100); // change back to luminoscity 
   pixel.show();
 }
 void MidQualityLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, yellow);
+  pixel.setPixelColor(0, yellow);
+  pixel.setPixelColor(1, yellow);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void LowQualityLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, orange);
+  pixel.setPixelColor(0, orange);
+  pixel.setPixelColor(1, orange);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 void DangerLED(){
   pixel.clear();
-  pixel.setPixelColor(pixNum, red); // forgot to put in the actual pixel number for all the above functions 
+  pixel.setPixelColor(0, red); // forgot to put in the actual pixel number for all the above functions 
+  pixel.setPixelColor(1, red);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 
 void MQTTPublish(){ // function for publishing sensor values to adafruit.io
-  unsigned long last;
   if((millis()-last>15000)){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
     if(mqtt.Update()){
       PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
