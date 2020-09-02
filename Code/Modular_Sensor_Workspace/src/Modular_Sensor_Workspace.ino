@@ -152,16 +152,8 @@ void AirQuality(){
   }
   else if(quality == AirQualitySensor::FRESH_AIR){
     qualityValue = 1;
-    // write different neopixel functions for, dim warning, high warning, blink warning
   }
 }
-/* for the above function, maybe tie leds or neopixels to the module
-tie a neopixel into the actual transducer frame, only blink red in users peripherals
-if dangerous value. if "danger acknowledged" (make dangerAcknowleged a boolean) 
-then just make a dim red emit in users peripherals. 
-
-for the neoPixels, i can write a header file for the colors 
-*/
 
 void BMEread(){
   temp = (bme.readTemperature()* 9/5)+32;
@@ -169,6 +161,7 @@ void BMEread(){
   press = (bme.readPressure() / 100.0F);
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
+
 /*       function below is an exampled of formating the SD logging        */      // FUNCTION DEPRECATED
 void SDLog(){
   file = SD.open(" ", FILE_WRITE); // insert name of file. maybe find a way to generate new files?
@@ -188,7 +181,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open(" ", FILE_WRITE); // insert file name. try experimenting with the excel file type
   if(qualityValue>=3 && s<=2){
-    // mp3 file for high pollution
     if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
       file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor. if the particle is going to be connected, then i can use the timeSync stuff
@@ -201,7 +193,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
   }
   else if(qualityValue<=2&& s>=3){
-    // mp3 file for high MQ-9 reading
     if(file){
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
       file.printf("MQ-9 read: %i \n", s);
@@ -219,7 +210,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
   }
   else if(qualityValue>=3 && s>=3 && temp>=100){ 
-    // mp3 file for "all sensors above nominal parameters"
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
@@ -275,9 +265,4 @@ unsigned long pixEnd;
   pixel.setPixelColor(pixNum, red); // forgot to put in the actual pixel number for all the above functions 
   pixel.setBrightness(luminoscity);
   pixel.show();
-  pixEnd = (millis()-pixStart); // keep working on this one
-  if(pixEnd>=1000){
-    pixel.setBrightness(0);
-    pixel.show();    
-  } 
 }
