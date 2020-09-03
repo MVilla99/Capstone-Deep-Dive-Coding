@@ -83,7 +83,6 @@ int MQval;
 /*    for syncing particle clock      */
 char currentDateTime[25], currentTime[9];
 
-
 void setup() {
   Serial.begin(9600);
   delay(100);
@@ -139,7 +138,6 @@ void loop() {
   }
   HighQualityLED();
   BMERead();
-  //Serial.println(temp);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -288,8 +286,8 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
     if(!file){
       Serial.println("MQ-9 write error");
-      
     }
+  }
     else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
       if(file){
         Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
@@ -303,10 +301,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
         Serial.println("nominal readings write error.");
       }
     }
-    if(file){ // if the files open, close it
-    file.close();
-    }
-  }
   else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors Ask Brian about the temp with the stuff at the top of this function
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
@@ -321,6 +315,9 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.println("High danger write error.");
     }
   }
+  if(file){ // if the files open, close it
+    file.close();
+    }
 }
 
 void SyncTime(){ // syncing particle clock to cloud clock to get accurate time for timestamps

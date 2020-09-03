@@ -10,9 +10,9 @@
 #include <SdFat.h>
 #include <DFRobotDFPlayerMini.h>
 
-  #define PIXEL_PIN // put pin
+  #define PIXEL_PIN A0// put pin
   #define PIXEL_COUNT 2
-  #define PIXEL_TYPE_WS2812B
+  #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int luminoscity;
 //use enum to make switch case 
@@ -20,7 +20,7 @@ enum WarningMessages {
   highQuality = 1,
   midQuality = 2,
   lowQuality = 3,
-  DangerQuality = 4;
+  DangerQuality = 4,
 };
 
 /*      for SD logging        */
@@ -33,7 +33,10 @@ File file;
 /*      for DFRobot mp3 player      */
 DFRobotDFPlayerMini myDFP;
 
+/*    for syncing particle clock      */
+char currentDateTime[25], currentTime[9];
 int message;
+
 // nstead of incrimenting with button clicks use encoder. or use on button (click = message++)
 // setup() runs once, when the device is first turned on.
 void setup() {
@@ -47,24 +50,66 @@ void setup() {
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // The core of your code will likely live here.
+  SyncTime();
   LEDBrightness();
+  file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
   switch(message){
       case(highQuality):
-
+      HighQualityLED();
+      if(file){
+        Serial.printf("nominal reads.");
+        file.println("nominal readings. nothing to record");
+        file.print(currentDateTime);
+        file.close();
+        // myDFP.playFolder(11, );
+        // delay( );
+      }
+      if(!file){ // if theres an error with the file, log it
+        Serial.println("nominal readings write error.");
+      }
       break;
       case(midQuality):
-
+        MidQualityLED();
+        if(file){
+          Serial.printf("Air Quality warning."); 
+          file.printf("Air Quality alert");
+          file.print(currentDateTime);
+          file.close();
+        }
+        if(!file){
+          Serial.println("AQ alert write error");
+        }
       break;
       case(lowQuality):
-
+        LowQualityLED();
+        if(file){
+          Serial.printf("MQ-9 warning.");
+          file.printf("MQ-9 alert");
+          file.print(currentDateTime);
+          file.close();
+          // myDFP.playFolder(11, );
+          // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
+        }
+        if(!file){
+          Serial.println("MQ-9 alert write error");
+        }
       break;
       case(DangerQuality):
-
+        DangerLED();
+        if(file){
+          Serial.printf("DANGER IMMINANT."); 
+          file.printf("High Danger.");
+          file.print(currentDateTime);
+          file.close();
+          // myDFP.playFolder(11, );
+          // delay( );
+        }
+        if(!file){
+          Serial.println("High danger write error.");
+        }
       break;  
   }
 }
-
-//insert the warning message function in here once done
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
@@ -102,66 +147,13 @@ void DangerLED(){
   pixel.show();
 }
 
-void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
-  file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
-  static int lastQualityValue;
-  static int lastMQval;
-  if(qualityValue == lastQualityValue && lastMQval == MQval){
-    return;
-    }
-  else{
-    lastQualityValue = qualityValue;
-    lastMQval = MQval;
-  }
-  if(qualityValue>=3 && MQval<=2){ // statement for high air quality pollution
-    if(file){
-      Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
-      file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor. if the particle is going to be connected, then i can use the timeSync stuff
-      file.print(currentDateTime);
-      file.close();
-    }
-    if(!file){ // if theres an error with the file, log it
-      Serial.println("AQ write error");
-      file.println("AQ write error");
-      file.print(currentDateTime);
-      file.close();
-    }
-  }
-  else if(qualityValue<=2&& MQval>=3){ //statement for high MQ-9 pollution
-    if(file){
-      Serial.printf("MQ-9 warning. MQ-9 read: %i \n", MQval);
-      file.printf("MQ-9 read: %i \n", MQval);
-      file.print(currentDateTime);
-      file.close();
-     // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
-    }
-    if(!file){
-      Serial.println("MQ-9 write error");
-      file.println("MQ-9 write error");
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, );
-     // delay( );
-    }
-  }
-  else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors
-    if(file){
-      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
-      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", MQval, qualityValue, temp);
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, );
-     // delay( );
-     DangerLED();
-    }
-    if(!file){
-      Serial.println("High danger write error.");
-      file.println("High danger write error.");
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, ); // this might loop too much and keep delaying/playing. might not need this function of (!file)
-     // delay( ); 
-    }
-    // file.close(): ? do i need this in case none of the functions are enabled. 
-  }
+void SyncTime(){ // syncing particle clock to cloud clock to get accurate time for timestamps
+  String DateTime, TimeOnly;
+  Time.zone(-6);
+  Particle.syncTime();
+  waitUntil(Particle.syncTimeDone);
+  DateTime = Time.timeStr();
+  TimeOnly = DateTime.substring(11,19);
+  DateTime.toCharArray(currentDateTime,25);
+  TimeOnly.toCharArray(currentTime,9);
 }
