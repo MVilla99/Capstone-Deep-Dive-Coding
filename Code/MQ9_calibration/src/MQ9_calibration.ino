@@ -4,14 +4,18 @@
  * Author:
  * Date:
  */
+
 int x;
 int LED = D7;
+int mq = A0;
+int i;
 // R0 = 9.4 Average
 // setup() runs once, when the device is first turned on.
 void setup() {
   // Put initialization like pinMode and begin functions here.
 Serial.begin(9600);
 pinMode(LED, OUTPUT);
+pinMode(mq, INPUT);
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -23,12 +27,12 @@ void loop() {
   float R0;
   float sensorValue;
     for(x =0; x<100; x++){
-      sensorValue = sensorValue + analogRead(A1);
+      sensorValue = sensorValue + analogRead(A0);
     }
     sensorValue = sensorValue/100.0;
 
-    sensor_volt = (sensorValue/4096)*5.0;
-    RS_air = (5.0 - sensor_volt)/sensor_volt;
+    sensor_volt = (sensorValue/4096)*3.3;
+    RS_air = (3.3 - sensor_volt)/sensor_volt;
     R0 = RS_air/9.9;
     Serial.printf("sensor_volt = %0.2f V \n",sensor_volt);
     Serial.printf("R0 = %0.2f \n",R0);
@@ -36,6 +40,7 @@ void loop() {
 }
 */
 
+/*
 //    for use when replacing R0 
 void loop(){
   int alarm = 0;
@@ -62,4 +67,24 @@ void loop(){
     digitalWrite(LED, LOW);
   }
   delay(1000);
+}
+*/
+
+void loop(){
+  int read;
+  int readAverage;
+  float measuredVolts;
+  float measuredResistance;
+  float R0;
+  read = 0;
+  for(x=0;x<100;x++){
+    read += analogRead(mq);
+    delay(20);
+  }
+  readAverage = read/100;
+  measuredVolts = (3.3/4096)*readAverage;
+  measuredResistance = ((5.0/measuredVolts)-1)*1000;
+  R0 = ((5.0/measuredVolts)-1.0)*(1000.0/measuredResistance);
+  Serial.printf("readAverage: %i measured volts: %0.2f measured resistance: %0.2f \n", readAverage,measuredVolts,measuredResistance);
+  Serial.printf("R0: %0.2f \n",R0);
 }

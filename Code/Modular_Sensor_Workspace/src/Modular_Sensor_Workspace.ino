@@ -28,10 +28,6 @@ SYSTEM_MODE(SEMI_AUTOMATIC)
   #define AIO_KEY "thisisarandomstringforakey" //replace
 /*      PUT AIO KEYS IN IGNORE FILE       */
 
-/*      for OLED display      */
-  #define OLED_RESET A0
-Adafruit_SSD1306 display(OLED_RESET);
-
 /*      for DFRobot mp3 player      */
 DFRobotDFPlayerMini myDFP;
 
@@ -77,6 +73,13 @@ float press;
 float hum;
 float alt;
 
+/*    for MQ-9 use      */ 
+const int MQaddress = 0x50;
+unsigned int MQData[2];
+int MQrawADC;
+float COppm = 0.0;
+int MQval;
+
 /*    for syncing particle clock      */
 char currentDateTime[25], currentTime[9];
 
@@ -87,10 +90,6 @@ void setup() {
   Serial1.begin(9600); // for using with the DFRobot player
   delay(100); // waiting for serial monitor to initialize 
   Wire.begin();
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  display.display();
-  display.clearDisplay();
-  display.display();
 
   last = 0; // for MQTT subscription timer. 
 
@@ -103,20 +102,21 @@ void setup() {
 
   pinMode(Bpin, INPUT_PULLDOWN);
 
-/*    // commented out for testing the mp3 player
+    // commented out for testing the mp3 player
   if(!SD.begin(SD_CS_PIN)){
     Serial.println("initialization failed!");
     return;
   }
-  */
- /*
+  Serial.println("SDlog init");
+  
+ 
   Serial.println("SD init"); // commented out while testing other functions
   if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
   }
   Serial.println("DFPlayer init");
-  */
+  
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
 
@@ -139,7 +139,61 @@ void loop() {
   if(buttonState){
     pixelState = !pixelState;
   }
-  HighQualityLED();
+  MQ9Read();
+  delay(1000);
+}
+
+void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
+  int pVal;
+  int pPin = A2;
+  pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
+  luminoscity = map(pVal, 40, 3000,10,255);
+}  
+void HighQualityLED(){
+  if(pixelState){
+  pixel.clear();
+  pixel.setPixelColor(0,green);
+  pixel.setPixelColor(1,green);
+  pixel.setBrightness(100);  // replace with luminoscity  
+  pixel.show();
+  Serial.println("pixel working");
+  }
+  else if(!pixelState){
+    pixel.clear();
+    pixel.show();
+  }
+}
+void MidQualityLED(){
+  pixel.clear();
+  pixel.setPixelColor(0, yellow);
+  pixel.setPixelColor(1, yellow);
+  pixel.setBrightness(luminoscity);
+  pixel.show();
+}
+void LowQualityLED(){
+  pixel.clear();
+  pixel.setPixelColor(0, orange);
+  pixel.setPixelColor(1, orange);
+  pixel.setBrightness(luminoscity);
+  pixel.show();
+}
+void DangerLED(){
+  pixel.clear();
+  pixel.setPixelColor(0, red);
+  pixel.setPixelColor(1, red);
+  pixel.setBrightness(luminoscity);
+  pixel.show();
+}
+
+void MQTTPublish(){ // function for publishing sensor values to adafruit.io
+  if((millis()-last)>15000){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
+    if(mqtt.Update()){
+      PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
+      PubMQ9.publish(MQval);
+      PubAQ.publish(qualityValue);
+    }
+  last = millis();
+  }
 }
 
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
@@ -177,6 +231,22 @@ void AirQualityRead(){
   }
 }
 
+/*      function for the MQ-9 sensor      */
+void MQ9Read(){
+  Wire.beginTransmission(MQaddress);
+  Wire.write(0x00);
+  Wire.endTransmission(false);
+  Wire.requestFrom(MQaddress ,2, true);
+  MQData[0] = Wire.read();
+  MQData[1] = Wire.read();
+  delay(3000);
+  MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
+  COppm = (1000.0/4096.0)*MQrawADC +10.0;
+  Serial.printf("CO: %0.2f ppm \n",COppm);
+  //MQval = map(COppm,0,  ,0,4); // put in high end value 
+
+}
+
 /*      function for reading the BME values       */
 void BMERead(){
   temp = (bme.readTemperature()* 9/5)+32;
@@ -185,12 +255,20 @@ void BMERead(){
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
 
-int s; // stand-in variable for MQ-9
+ // stand-in variable for MQ-9
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
-// assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
   file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
-  if(qualityValue>=3 && s<=2){
-    if(file){ // write the air quality value to the SD, and serial monitor (for testing purposes)
+  static int lastQualityValue;
+  static int lastMQval;
+  if(qualityValue == lastQualityValue && lastMQval == MQval){
+    return;
+    }
+  else{
+    lastQualityValue = qualityValue;
+    lastMQval = MQval;
+  }
+  if(qualityValue>=3 && MQval<=2){ // statement for high air quality pollution
+    if(file){
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
       file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor. if the particle is going to be connected, then i can use the timeSync stuff
       file.print(currentDateTime);
@@ -203,10 +281,10 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
     }
   }
-  else if(qualityValue<=2&& s>=3){
+  else if(qualityValue<=2&& MQval>=3){ //statement for high MQ-9 pollution
     if(file){
-      Serial.printf("MQ-9 warning. MQ-9 read: %i \n", s);
-      file.printf("MQ-9 read: %i \n", s);
+      Serial.printf("MQ-9 warning. MQ-9 read: %i \n", MQval);
+      file.printf("MQ-9 read: %i \n", MQval);
       file.print(currentDateTime);
       file.close();
      // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
@@ -220,19 +298,15 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
      // delay( );
     }
   }
-  else if(qualityValue>=3 && s>=3 && temp>=100){ // for these functions, find a way to put a timer in so it doesnt play back to back 
+  else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors
     if(file){
-      // need a timer function maybe like below lines.
-      /* 
-      currentMillis = millis();
-      while(currnetMillis<=60000){
-      */
-      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
-      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
+      Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
+      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", MQval, qualityValue, temp);
       file.print(currentDateTime);
       file.close();
      // myDFP.playFolder(11, );
      // delay( );
+     DangerLED();
     }
     if(!file){
       Serial.println("High danger write error.");
@@ -243,61 +317,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
      // delay( ); 
     }
     // file.close(): ? do i need this in case none of the functions are enabled. 
-  }
-}
-
-// write a buttonstate statement in the loop to turn on and off all neopixel functions if the user doesnt want the lights t1
-void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
-  int pVal;
-  int pPin = A2;
-  pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
-  luminoscity = map(pVal, 40, 3000,10,255);
-}  
-void HighQualityLED(){
-  if(pixelState){
-  pixel.clear();
-  pixel.setPixelColor(0,green);
-  pixel.setPixelColor(1,green);
-  pixel.setBrightness(100);  // replace with luminoscity  
-  pixel.show();
-  Serial.println("pixel working");
-  while(1); // or return?
-  }
-  else if(!pixelState){
-    pixel.clear();
-    pixel.show();
-  }
-}
-void MidQualityLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, yellow);
-  pixel.setPixelColor(1, yellow);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
-}
-void LowQualityLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, orange);
-  pixel.setPixelColor(1, orange);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
-}
-void DangerLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, red);
-  pixel.setPixelColor(1, red);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
-}
-
-void MQTTPublish(){ // function for publishing sensor values to adafruit.io
-  if((millis()-last)>15000){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
-    if(mqtt.Update()){
-      PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
-      PubMQ9.publish(s); // put "s" in for now as its the stand-in variable for the MQ-9
-      PubAQ.publish(qualityValue);
-    }
-  last = millis();
   }
 }
 
