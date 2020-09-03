@@ -14,7 +14,8 @@
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int luminoscity;
 //use enum to make switch case 
-
+int message;
+// nstead of incrimenting with button clicks use encoder. or use on button (click = message++)
 // setup() runs once, when the device is first turned on.
 void setup() {
   // Put initialization like pinMode and begin functions here.
@@ -27,7 +28,9 @@ void setup() {
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // The core of your code will likely live here.
-
+  switch(message){
+    
+  }
 }
 
 //insert the warning message function in here once done

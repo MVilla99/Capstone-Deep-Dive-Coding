@@ -185,20 +185,6 @@ void BMERead(){
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
 
-/*       function below is an exampled of formating the SD logging        */      // FUNCTION DEPRECATED
-void SDLog(){
-  file = SD.open(" ", FILE_WRITE); // insert name of file. maybe find a way to generate new files?
-  // dont forget files arent auto generated from this code.
-  if(file){
-    Serial.println("writing to file");
-    file.println("insert text here");
-    file.close();
-  }
-  else {
-    Serial.println("error opening file");
-  }
-}
- 
 int s; // stand-in variable for MQ-9
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
 // assuming that the MQ-9 is coded in a way like the AQ sensor, i have 4 quantitative subroutines 
@@ -266,9 +252,6 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
   int pPin = A2;
   pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
   luminoscity = map(pVal, 40, 3000,10,255);
-  // photoresistor fully covered is at 37k
-  // with flourescent lights its 22k
-  // with flashlight on top of it, its ~20 
 }  
 void HighQualityLED(){
   if(pixelState){

@@ -1,0 +1,23 @@
+to do: 
+- check SD card writes
+- make and insert DataLog.csv into sd card
+- check timestamps
+- check that while(1) or return; function with brian
+- check that timer for the else if's in warning message functions (maybe use while(1)?)
+- git ignore for adafruit io key
+- mq-9
+- put neopixel functions under associated warning messages
+- maybe add a subscribe function as an interrupt 
+- IFTTT
+
+flow for the loop(so far):
+
+mqttconnect
+synctime
+buttonState for pixelstate
+LEDbrightness
+bmeread
+aqread
+mq-9read
+warningmessage
+mqttpublish
