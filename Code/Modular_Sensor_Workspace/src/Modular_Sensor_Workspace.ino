@@ -109,8 +109,6 @@ void setup() {
   }
   Serial.println("SDlog init");
   
- 
-  Serial.println("SD init"); // commented out while testing other functions
   if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
@@ -139,8 +137,9 @@ void loop() {
   if(buttonState){
     pixelState = !pixelState;
   }
-  MQ9Read();
-  delay(1000);
+  HighQualityLED();
+  BMERead();
+  //Serial.println(temp);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -156,7 +155,6 @@ void HighQualityLED(){
   pixel.setPixelColor(1,green);
   pixel.setBrightness(100);  // replace with luminoscity  
   pixel.show();
-  Serial.println("pixel working");
   }
   else if(!pixelState){
     pixel.clear();
@@ -276,9 +274,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
     if(!file){ // if theres an error with the file, log it
       Serial.println("AQ write error");
-      file.println("AQ write error");
-      file.print(currentDateTime);
-      file.close();
+      
     }
   }
   else if(qualityValue<=2&& MQval>=3){ //statement for high MQ-9 pollution
@@ -287,18 +283,31 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       file.printf("MQ-9 read: %i \n", MQval);
       file.print(currentDateTime);
       file.close();
+      // myDFP.playFolder(11, );
      // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
-      file.println("MQ-9 write error");
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, );
-     // delay( );
+      
+    }
+    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
+      if(file){
+        Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
+        file.println("nominal readings. nothing to record");
+        file.print(currentDateTime);
+        file.close();
+        // myDFP.playFolder(11, );
+        // delay( );
+      }
+      if(!file){
+        Serial.println("nominal readings write error.");
+      }
+    }
+    if(file){ // if the files open, close it
+    file.close();
     }
   }
-  else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors
+  else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors Ask Brian about the temp with the stuff at the top of this function
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", MQval, qualityValue, temp);
@@ -310,13 +319,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
     if(!file){
       Serial.println("High danger write error.");
-      file.println("High danger write error.");
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, ); // this might loop too much and keep delaying/playing. might not need this function of (!file)
-     // delay( ); 
     }
-    // file.close(): ? do i need this in case none of the functions are enabled. 
   }
 }
 
