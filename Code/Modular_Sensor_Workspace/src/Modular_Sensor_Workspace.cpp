@@ -10,7 +10,22 @@
  * Author: Mauricio Villa
  * Date: 12 - August - 2020
  */
-
+void setup();
+void loop();
+void MQTTConnect();
+void AirQualityRead();
+void BMERead();
+void SDLog();
+void WarningMessage();
+void LEDBrightness();
+void HighQualityLED();
+void MidQualityLED();
+void LowQualityLED();
+void DangerLED();
+void MQTTPublish();
+void SyncTime();
+#line 7 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Modular_Sensor_Workspace/src/Modular_Sensor_Workspace.ino"
+SYSTEM_MODE(SEMI_AUTOMATIC)
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_SSD1306.h>
@@ -28,31 +43,18 @@
   #include "Adafruit_MQTT/Adafruit_MQTT_SPARK.h"
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
 
-  void setup();
-void loop();
-void MQTTConnect();
-void AirQuality();
-void BMEread();
-void SDLog();
-void WarningMessage();
-void LEDBrightness();
-void HighQualityLED();
-void MidQualityLED();
-void LowQualityLED();
-void DangerLED();
-void MQTTPublish();
-#line 25 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Modular_Sensor_Workspace/src/Modular_Sensor_Workspace.ino"
-#define AIO_SERVER "io.adafruit.com"
+  #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1833
   #define AIO_USERNAME "mauriciov99" 
   #define AIO_KEY "thisisarandomstringforakey" //replace
 /*      PUT AIO KEYS IN IGNORE FILE       */
 
-  #define OLED_RESET A0 // for oled display
+/*      for OLED display      */
+  #define OLED_RESET A0
+Adafruit_SSD1306 display(OLED_RESET);
 
 /*      for DFRobot mp3 player      */
 DFRobotDFPlayerMini myDFP;
-
 
 /*      for SD logging        */
 int i;
@@ -60,7 +62,6 @@ SdFat SD;
 File file;
   #define SD_CS_PIN SS
   #define error(msg) sd.errorHalt(msg)
-
 
 /*      for subscribing | publishing        */
 TCPClient TheClient;
@@ -70,28 +71,36 @@ Adafruit_MQTT_Publish PubBME = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds
 Adafruit_MQTT_Publish PubMQ9 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
 Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
 unsigned long last;
-  
-Adafruit_BME280 bme; // for bme 
-  #define SEALEVELPRESSURE_HPA (1013.25)
-Adafruit_SSD1306 display(OLED_RESET); // for oled
-AirQualitySensor senseAQ(A2); // put sensor pin in here
+
+/*    for Air Quality Sensor      */
+AirQualitySensor senseAQ(A3); // put sensor pin in here
 
 /*    for NeoPixels       */
-  #define PIXEL_PIN A4// add pin for pixels
-  #define PIXEL_COUNT 2// put number of pixels
+  #define PIXEL_PIN A1
+  #define PIXEL_COUNT 2
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int luminoscity;
+bool buttonState = false;
+bool pixelState = false;
+int Bpin = D2;
 
 /*    for AirQualitySensor use    */
 int quality;
 int AQvalue;
-int qualityValue; 
+int qualityValue;
+
 /*    for BME use     */
+Adafruit_BME280 bme;
+  #define SEALEVELPRESSURE_HPA (1013.25)
 float temp;
 float press;
 float hum;
 float alt;
+
+/*    for syncing particle clock      */
+char currentDateTime[25], currentTime[9];
+
 
 void setup() {
   Serial.begin(9600);
@@ -107,10 +116,13 @@ void setup() {
   last = 0; // for MQTT subscription timer. 
 
   pixel.begin();
+  pixel.clear();
   pixel.show();
 
   bme.begin(0x76);
   senseAQ.init();
+
+  pinMode(Bpin, INPUT_PULLDOWN);
 
 /*    // commented out for testing the mp3 player
   if(!SD.begin(SD_CS_PIN)){
@@ -138,11 +150,16 @@ void setup() {
   }
   file.printf("timestamp, whatever data"); // printing data header. "timestamp" and "data" are remanents
   */
+ Serial.println("Initialization finished");
 }
 
 
 void loop() {
 //MQTT_connect(); // still need to impliment the subscribe/publish code. also now the name for the function has changed
+  buttonState = digitalRead(Bpin);
+  if(buttonState){
+    pixelState = !pixelState;
+  }
   HighQualityLED();
 }
 
@@ -163,7 +180,7 @@ void MQTTConnect(){
 }
 
 /*        function for the airquality sensor        */
-void AirQuality(){
+void AirQualityRead(){
   quality = senseAQ.slope();
   AQvalue = senseAQ.getValue();
 
@@ -181,7 +198,8 @@ void AirQuality(){
   }
 }
 
-void BMEread(){
+/*      function for reading the BME values       */
+void BMERead(){
   temp = (bme.readTemperature()* 9/5)+32;
   hum = bme.readHumidity();
   press = (bme.readPressure() / 100.0F);
@@ -233,8 +251,13 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
      // delay( );
     }
   }
-  else if(qualityValue>=3 && s>=3 && temp>=100){ 
+  else if(qualityValue>=3 && s>=3 && temp>=100){ // for these functions, find a way to put a timer in so it doesnt play back to back 
     if(file){
+      // need a timer function maybe like below lines.
+      /* 
+      currentMillis = millis();
+      while(currnetMillis<=60000){
+      */
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", s, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", s, qualityValue, temp);
       file.close();
@@ -252,23 +275,30 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
   }
 }
 
+// write a buttonstate statement in the loop to turn on and off all neopixel functions if the user doesnt want the lights t1
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
-  int pPin = A1;
-  pVal = analogRead(pPin);
+  int pPin = A2;
+  pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
   luminoscity = map(pVal, 40, 3000,10,255);
   // photoresistor fully covered is at 37k
   // with flourescent lights its 22k
   // with flashlight on top of it, its ~20 
-
 }  
 void HighQualityLED(){
+  if(pixelState){
   pixel.clear();
-  //pixel.fill(green, 0, 2); // ported adafruit neopixel headerfile has no member function for fill
   pixel.setPixelColor(0,green);
   pixel.setPixelColor(1,green);
-  pixel.setBrightness(100); // change back to luminoscity 
+  pixel.setBrightness(100);  // replace with luminoscity  
   pixel.show();
+  Serial.println("pixel working");
+  while(1);
+  }
+  else if(!pixelState){
+    pixel.clear();
+    pixel.show();
+  }
 }
 void MidQualityLED(){
   pixel.clear();
@@ -286,14 +316,14 @@ void LowQualityLED(){
 }
 void DangerLED(){
   pixel.clear();
-  pixel.setPixelColor(0, red); // forgot to put in the actual pixel number for all the above functions 
+  pixel.setPixelColor(0, red);
   pixel.setPixelColor(1, red);
   pixel.setBrightness(luminoscity);
   pixel.show();
 }
 
 void MQTTPublish(){ // function for publishing sensor values to adafruit.io
-  if((millis()-last>15000)){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
+  if((millis()-last)>15000){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
     if(mqtt.Update()){
       PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
       PubMQ9.publish(s); // put "s" in for now as its the stand-in variable for the MQ-9
@@ -301,4 +331,15 @@ void MQTTPublish(){ // function for publishing sensor values to adafruit.io
     }
   last = millis();
   }
+}
+
+void SyncTime(){ // syncing particle clock to cloud clock to get accurate time for timestamps
+  String DateTime, TimeOnly;
+  Time.zone(-6);
+  Particle.syncTime();
+  waitUntil(Particle.syncTimeDone);
+  DateTime = Time.timeStr();
+  TimeOnly = DateTime.substring(11,19);
+  DateTime.toCharArray(currentDateTime,25);
+  TimeOnly.toCharArray(currentTime,9);
 }
