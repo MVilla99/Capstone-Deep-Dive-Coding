@@ -1,14 +1,18 @@
 to do: 
 - check SD card writes
-- make and insert DataLog.csv into sd card
-- check timestamps
-- check that while(1) or return; function with brian
-- check that timer for the else if's in warning message functions (maybe use while(1)?)
+- make and insert DataLog.csv into sd card DONE//
+- check timestamps DONE// 
+- check that while(1) or return; function with brian DONE //
+- check that timer for the else if's in warning message functions (maybe use while(1)?) DONE //
 - git ignore for adafruit io key
-- mq-9
-- put neopixel functions under associated warning messages
+- mq-9 	DONE//
+- put neopixel functions under associated warning messages DONE//
 - maybe add a subscribe function as an interrupt 
 - IFTTT
+- make the warning message if statements flow like highDanger>low>mid>normal>fileClose
+- take off system semi automatic mode
+- do schematic for fritzing v2
+- attach mqtt subscribe interrupt 
 
 flow for the loop(so far):
 

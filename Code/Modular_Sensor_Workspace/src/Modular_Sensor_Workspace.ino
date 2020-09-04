@@ -48,7 +48,7 @@ Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/
 unsigned long last;
 
 /*    for Air Quality Sensor      */
-AirQualitySensor senseAQ(A3); // put sensor pin in here
+AirQualitySensor senseAQ(A3);
 
 /*    for NeoPixels       */
   #define PIXEL_PIN A1
@@ -101,43 +101,33 @@ void setup() {
 
   pinMode(Bpin, INPUT_PULLDOWN);
 
-    // commented out for testing the mp3 player
   if(!SD.begin(SD_CS_PIN)){
     Serial.println("initialization failed!");
     return;
   }
   Serial.println("SDlog init");
-  
   if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
   }
   Serial.println("DFPlayer init");
-  
+
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
-
-  if(!sd.begin(chipSelect,SD_SCK_MHZ(50))){
-    sd.initErrorHalt();
-  }
-  if(BASE_NAME_SIZE > 6){
-    Serial.println("FILE_BASE_NAME too long");
-    while(1);
-  }
-  file.printf("timestamp, whatever data"); // printing data header. "timestamp" and "data" are remanents
   */
  Serial.println("Initialization finished");
 }
 
-
 void loop() {
 //MQTT_connect(); // the name for the function has changed
-  buttonState = digitalRead(Bpin);
-  if(buttonState){
-    pixelState = !pixelState;
-  }
-  HighQualityLED();
-  BMERead();
+//  buttonState = digitalRead(Bpin);
+// if(buttonState){
+ //   pixelState = !pixelState;
+ // }
+ // HighQualityLED();
+ // BMERead();
+  myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
+  delay(30000);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -239,8 +229,7 @@ void MQ9Read(){
   MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
   COppm = (1000.0/4096.0)*MQrawADC +10.0;
   Serial.printf("CO: %0.2f ppm \n",COppm);
-  //MQval = map(COppm,0,  ,0,4); // put in high end value 
-
+  //MQval = map(COppm,0,1500,0,4);
 }
 
 /*      function for reading the BME values       */
@@ -251,7 +240,6 @@ void BMERead(){
   alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
 }
 
- // stand-in variable for MQ-9
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
   file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
   static int lastQualityValue;
@@ -264,18 +252,19 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     lastMQval = MQval;
   }
   if(qualityValue>=3 && MQval<=2){ // statement for high air quality pollution
+    MidQualityLED();
     if(file){
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
-      file.printf("Air Quality Read: %i \n", qualityValue); // dont forget to write the timestamp to the card/serial monitor. if the particle is going to be connected, then i can use the timeSync stuff
+      file.printf("Air Quality Read: %i \n", qualityValue);
       file.print(currentDateTime);
       file.close();
     }
     if(!file){ // if theres an error with the file, log it
       Serial.println("AQ write error");
-      
     }
   }
   else if(qualityValue<=2&& MQval>=3){ //statement for high MQ-9 pollution
+    LowQualityLED();
     if(file){
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", MQval);
       file.printf("MQ-9 read: %i \n", MQval);
@@ -289,6 +278,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     }
   }
     else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
+      HighQualityLED();
       if(file){
         Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
         file.println("nominal readings. nothing to record");
@@ -302,6 +292,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       }
     }
   else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors Ask Brian about the temp with the stuff at the top of this function
+    DangerLED();
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
       file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", MQval, qualityValue, temp);
@@ -309,7 +300,6 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       file.close();
      // myDFP.playFolder(11, );
      // delay( );
-     DangerLED();
     }
     if(!file){
       Serial.println("High danger write error.");
