@@ -10,13 +10,7 @@
  * Author:
  * Date:
  */
-#include <neopixel.h>
-#include <DFRobotDFPlayerMini.h>
-#include "colors.h"
-#include <SdFat.h>
-#include <DFRobotDFPlayerMini.h>
-
-  void setup();
+void setup();
 void loop();
 void LEDBrightness();
 void HighQualityLED();
@@ -24,8 +18,17 @@ void MidQualityLED();
 void LowQualityLED();
 void DangerLED();
 void SyncTime();
-#line 13 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Demonstration/src/Demonstration.ino"
-#define PIXEL_PIN A0// put pin
+void TestAllFunctions();
+void enableButton();
+#line 7 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Demonstration/src/Demonstration.ino"
+SYSTEM_MODE(SEMI_AUTOMATIC)
+#include <neopixel.h>
+#include <DFRobotDFPlayerMini.h>
+#include "colors.h"
+#include <SdFat.h>
+#include <DFRobotDFPlayerMini.h>
+
+  #define PIXEL_PIN A1
   #define PIXEL_COUNT 2
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
@@ -52,23 +55,52 @@ DFRobotDFPlayerMini myDFP;
 char currentDateTime[25], currentTime[9];
 int message;
 
-// nstead of incrimenting with button clicks use encoder. or use on button (click = message++)
-// setup() runs once, when the device is first turned on.
+int demoBpin = D3; 
+bool demoButtonState = false;
+int caseSwitch;
+bool run = false;
+
 void setup() {
-  // Put initialization like pinMode and begin functions here.
   Serial.begin(9600);
   delay(100);
   pixel.begin();
   pixel.show();
+  pinMode(demoBpin, INPUT_PULLDOWN);
+  /*
+  if(!SD.begin(SD_CS_PIN)){
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("SDlog init");
+  if(!myDFP.begin(Serial1)){
+    Serial.println("DFPlayer init failed");
+    while(true);
+  }
+  */
+  Serial.println("DFPlayer init");
+  Serial.println("Initialization finished");
+  //attachInterrupt(demoBpin, enableButton, RISING);
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // The core of your code will likely live here.
+  demoButtonState = digitalRead(demoBpin);
+  if(demoButtonState){
+    //for(caseSwitch=0;caseSwitch<5;caseSwitch++);
+    caseSwitch++;
+    if(caseSwitch>4){
+     caseSwitch=1;//maybe 1 since first case is enum as 1
+     delay(100);
+    }
+  }
+  Serial.println(caseSwitch);
+  /*
   SyncTime();
   LEDBrightness();
   file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
-  switch(message){
+  switch(caseSwitch){
       case(highQuality):
       HighQualityLED();
       if(file){
@@ -124,6 +156,7 @@ void loop() {
         }
       break;  
   }
+  */
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -138,7 +171,6 @@ void HighQualityLED(){
   pixel.setPixelColor(1,green);
   pixel.setBrightness(luminoscity);
   pixel.show();
-  Serial.println("pixel working");
 }
 void MidQualityLED(){
   pixel.clear();
@@ -171,4 +203,18 @@ void SyncTime(){ // syncing particle clock to cloud clock to get accurate time f
   TimeOnly = DateTime.substring(11,19);
   DateTime.toCharArray(currentDateTime,25);
   TimeOnly.toCharArray(currentTime,9);
+}
+
+void TestAllFunctions(){
+  Serial.printf("pixel brightness: %i \n", luminoscity);
+  Serial.println("timestamp: ");
+  Serial.print(currentDateTime);
+}
+
+void enableButton(){
+  //demoButtonState = true;
+  caseSwitch++;
+  if(caseSwitch>4){
+    caseSwitch = 1;
+  }
 }

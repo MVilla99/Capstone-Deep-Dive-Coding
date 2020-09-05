@@ -4,13 +4,14 @@
  * Author:
  * Date:
  */
+SYSTEM_MODE(SEMI_AUTOMATIC)
 #include <neopixel.h>
 #include <DFRobotDFPlayerMini.h>
 #include "colors.h"
 #include <SdFat.h>
 #include <DFRobotDFPlayerMini.h>
 
-  #define PIXEL_PIN A0// put pin
+  #define PIXEL_PIN A1
   #define PIXEL_COUNT 2
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
@@ -37,7 +38,7 @@ DFRobotDFPlayerMini myDFP;
 char currentDateTime[25], currentTime[9];
 int message;
 
-int demoBpin = D3; // put button pin
+int demoBpin = D3; 
 bool demoButtonState = false;
 int caseSwitch;
 bool run = false;
@@ -48,6 +49,7 @@ void setup() {
   pixel.begin();
   pixel.show();
   pinMode(demoBpin, INPUT_PULLDOWN);
+  /*
   if(!SD.begin(SD_CS_PIN)){
     Serial.println("initialization failed!");
     return;
@@ -57,8 +59,11 @@ void setup() {
     Serial.println("DFPlayer init failed");
     while(true);
   }
+  */
   Serial.println("DFPlayer init");
   Serial.println("Initialization finished");
+  //attachInterrupt(demoBpin, enableButton, RISING); // works fine but try momentary switch
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -68,10 +73,13 @@ void loop() {
   if(demoButtonState){
     //for(caseSwitch=0;caseSwitch<5;caseSwitch++);
     caseSwitch++;
-    if(caseSwitch<4){
-      caseSwitch=0;//maybe 1 since first case is enum as 1
+    if(caseSwitch>4){
+     caseSwitch=1;//maybe 1 since first case is enum as 1
+     delay(100);
     }
   }
+  Serial.println(caseSwitch);
+  /*
   SyncTime();
   LEDBrightness();
   file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
@@ -131,6 +139,7 @@ void loop() {
         }
       break;  
   }
+  */
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -183,5 +192,12 @@ void TestAllFunctions(){
   Serial.printf("pixel brightness: %i \n", luminoscity);
   Serial.println("timestamp: ");
   Serial.print(currentDateTime);
-  
+}
+
+void enableButton(){
+  //demoButtonState = true;
+  caseSwitch++;
+  if(caseSwitch>4){
+    caseSwitch = 1;
+  }
 }

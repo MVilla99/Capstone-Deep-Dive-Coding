@@ -24,6 +24,7 @@ void MQ9Read();
 void BMERead();
 void WarningMessage();
 void SyncTime();
+void  enableButton();
 #line 7 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Code/Modular_Sensor_Workspace/src/Modular_Sensor_Workspace.ino"
 SYSTEM_MODE(SEMI_AUTOMATIC)
 #include <Wire.h>
@@ -127,28 +128,29 @@ void setup() {
     return;
   }
   Serial.println("SDlog init");
-  if(!myDFP.begin(Serial1)){
+  /*  if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
-  }
+  } */
   Serial.println("DFPlayer init");
 
 /*                          commented this chunk out while i tested the bme and other sensors.
   mqtt.subscribe(&subData);
   */
  Serial.println("Initialization finished");
+ attachInterrupt(Bpin, enableButton, RISING);
 }
 
 void loop() {
 //MQTT_connect(); // the name for the function has changed
-//  buttonState = digitalRead(Bpin);
-// if(buttonState){
- //   pixelState = !pixelState;
- // }
- // HighQualityLED();
+
+  HighQualityLED();
  // BMERead();
-  myDFP.playMp3Folder(4);
-  delay(30000);
+  //myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
+  //delay(10000);
+ //MQ9Read();
+ //Serial.println(MQval);
+ //delay(500);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -246,11 +248,10 @@ void MQ9Read(){
   Wire.requestFrom(MQaddress ,2, true);
   MQData[0] = Wire.read();
   MQData[1] = Wire.read();
-  delay(3000);
   MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
   COppm = (1000.0/4096.0)*MQrawADC +10.0;
-  Serial.printf("CO: %0.2f ppm \n",COppm);
-  //MQval = map(COppm,0,1500,0,4);
+  //Serial.printf("CO: %0.2f ppm \n",COppm);
+  MQval = map((int)COppm,0,1200,0,4);
 }
 
 /*      function for reading the BME values       */
@@ -340,4 +341,9 @@ void SyncTime(){ // syncing particle clock to cloud clock to get accurate time f
   TimeOnly = DateTime.substring(11,19);
   DateTime.toCharArray(currentDateTime,25);
   TimeOnly.toCharArray(currentTime,9);
+}
+
+void  enableButton() //ISR for switching the neopixels on or off
+{
+  pixelState = !pixelState;
 }
