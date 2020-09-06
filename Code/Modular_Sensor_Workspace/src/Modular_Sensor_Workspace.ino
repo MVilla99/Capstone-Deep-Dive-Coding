@@ -106,10 +106,10 @@ void setup() {
     return;
   }
   Serial.println("SDlog init");
-  /*  if(!myDFP.begin(Serial1)){
+    if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
-  } */
+  } 
   Serial.println("DFPlayer init");
 
 /*                          commented this chunk out while i tested the bme and other sensors.
@@ -126,9 +126,9 @@ void loop() {
  // BMERead();
   //myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
   //delay(10000);
- //MQ9Read();
- //Serial.println(MQval);
- //delay(500);
+ MQ9Read();
+ Serial.printf("mqval: %i COppm: %0.2f\n",MQval,COppm);
+ delay(500);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -247,7 +247,8 @@ void MQ9Read(){
   MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
   COppm = (1000.0/4096.0)*MQrawADC +10.0;
   //Serial.printf("CO: %0.2f ppm \n",COppm);
-  MQval = map((int)COppm,0,1200,0,4);
+  MQval = map((int)COppm,0,990,0,4); 
+  // an unmapped MQ-9 reading read a peak of ~990 PPM when tested with 91% Isopropyl alcohol placed directly on top of the sensor. 
 }
 
 /*      function for reading the BME values       */

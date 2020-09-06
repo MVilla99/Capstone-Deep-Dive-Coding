@@ -128,10 +128,10 @@ void setup() {
     return;
   }
   Serial.println("SDlog init");
-  /*  if(!myDFP.begin(Serial1)){
+    if(!myDFP.begin(Serial1)){
     Serial.println("DFPlayer init failed");
     while(true);
-  } */
+  } 
   Serial.println("DFPlayer init");
 
 /*                          commented this chunk out while i tested the bme and other sensors.
@@ -148,9 +148,9 @@ void loop() {
  // BMERead();
   //myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
   //delay(10000);
- //MQ9Read();
- //Serial.println(MQval);
- //delay(500);
+ MQ9Read();
+ Serial.printf("mqval: %i COppm: %0.2f\n",MQval,COppm);
+ delay(500);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
@@ -161,11 +161,11 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
 }  
 void HighQualityLED(){
   if(pixelState){
-  pixel.clear();
-  pixel.setPixelColor(0,green);
-  pixel.setPixelColor(1,green);
-  pixel.setBrightness(100);  // replace with luminoscity  
-  pixel.show();
+    pixel.clear();
+    pixel.setPixelColor(0,green);
+    pixel.setPixelColor(1,green);
+    pixel.setBrightness(100);  // replace with luminoscity  
+    pixel.show();
   }
   else if(!pixelState){
     pixel.clear();
@@ -173,25 +173,43 @@ void HighQualityLED(){
   }
 }
 void MidQualityLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, yellow);
-  pixel.setPixelColor(1, yellow);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
+  if(pixelState){
+    pixel.clear();
+    pixel.setPixelColor(0, yellow);
+    pixel.setPixelColor(1, yellow);
+    pixel.setBrightness(luminoscity);
+    pixel.show();
+  }
+  else if(!pixelState){
+    pixel.clear();
+    pixel.show();
+  }
 }
 void LowQualityLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, orange);
-  pixel.setPixelColor(1, orange);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
+  if(pixelState){
+    pixel.clear();
+    pixel.setPixelColor(0, orange);
+    pixel.setPixelColor(1, orange);
+    pixel.setBrightness(luminoscity);
+    pixel.show();
+  }
+  else if(!pixelState){
+    pixel.clear();
+    pixel.show();
+  }
 }
 void DangerLED(){
-  pixel.clear();
-  pixel.setPixelColor(0, red);
-  pixel.setPixelColor(1, red);
-  pixel.setBrightness(luminoscity);
-  pixel.show();
+  if(pixelState){
+    pixel.clear();
+    pixel.setPixelColor(0, red);
+    pixel.setPixelColor(1, red);
+    pixel.setBrightness(luminoscity);
+    pixel.show();
+  }
+  else if(!pixelState){
+    pixel.clear();
+    pixel.show();
+  }
 }
 
 void MQTTPublish(){ // function for publishing sensor values to adafruit.io
@@ -251,7 +269,7 @@ void MQ9Read(){
   MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
   COppm = (1000.0/4096.0)*MQrawADC +10.0;
   //Serial.printf("CO: %0.2f ppm \n",COppm);
-  MQval = map((int)COppm,0,1200,0,4);
+  MQval = map((int)COppm,0,990,0,4);
 }
 
 /*      function for reading the BME values       */
@@ -263,7 +281,7 @@ void BMERead(){
 }
 
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
-  file = SD.open("DataLog.csv", FILE_WRITE); // insert file name. try experimenting with the excel file type
+  file = SD.open("DataLog.csv", FILE_WRITE);
   static int lastQualityValue;
   static int lastMQval;
   if(qualityValue == lastQualityValue && lastMQval == MQval){
@@ -292,7 +310,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       file.printf("MQ-9 read: %i \n", MQval);
       file.print(currentDateTime);
       file.close();
-      // myDFP.playFolder(11, );
+      // myDFP.playFolder(11, ); // switch to the mp3folder function
      // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
