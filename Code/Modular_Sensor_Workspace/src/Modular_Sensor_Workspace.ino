@@ -121,28 +121,35 @@ void setup() {
 
 void loop() {
 //MQTT_connect(); // the name for the function has changed
-
+  LEDBrightness();
   HighQualityLED();
+  delay(200);
  // BMERead();
   //myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
   //delay(10000);
- MQ9Read();
- Serial.printf("mqval: %i COppm: %0.2f\n",MQval,COppm);
- delay(500);
+ //MQ9Read();
+ //Serial.printf("mqval: %i COppm: %0.2f\n",MQval,COppm);
+ //delay(500);
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
   int pPin = A2;
   pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
-  luminoscity = map(pVal, 40, 3000,10,255);
+  //luminoscity = map(pVal, 40, 3000,10,255);
+  luminoscity = map(pVal,800,4096,10,255);
+  //Serial.println(pVal);
+// covered is 4095
+// realistic light is ~1000
+// flashlight over it is 800
+//flashlight on top of it is ~300
 }  
 void HighQualityLED(){
   if(pixelState){
     pixel.clear();
     pixel.setPixelColor(0,green);
     pixel.setPixelColor(1,green);
-    pixel.setBrightness(100);  // replace with luminoscity  
+    pixel.setBrightness(luminoscity);  // replace with luminoscity  
     pixel.show();
   }
   else if(!pixelState){
