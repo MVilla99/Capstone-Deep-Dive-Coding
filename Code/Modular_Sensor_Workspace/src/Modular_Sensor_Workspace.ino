@@ -26,13 +26,11 @@
   #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1883
   #define AIO_USERNAME "mauriciov99" 
- // #define AIO_KEY "aio_CMIN24MCyGihmUxIESA1Y94XTF7E"
 
 /*      for DFRobot mp3 player      */
 DFRobotDFPlayerMini myDFP;
 
 /*      for SD logging        */
-int i;
 SdFat SD;
 File file;
   #define SD_CS_PIN SS
@@ -118,7 +116,6 @@ void setup() {
 }
 
 void loop() {
-//MQTT_connect(); // the name for the function has changed
   qualityValue = 3;
   MQval = 3;
   temp = 110;
