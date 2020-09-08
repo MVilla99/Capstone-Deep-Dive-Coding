@@ -4,7 +4,7 @@
  * Author: Mauricio Villa
  * Date: 12 - August - 2020
  */
-SYSTEM_MODE(SEMI_AUTOMATIC)
+//SYSTEM_MODE(SEMI_AUTOMATIC)
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_SSD1306.h>
@@ -21,12 +21,12 @@ SYSTEM_MODE(SEMI_AUTOMATIC)
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
   #include "Adafruit_MQTT/Adafruit_MQTT_SPARK.h"
   #include "Adafruit_MQTT/Adafruit_MQTT.h"
+  #include "AioKey.h"
 
   #define AIO_SERVER "io.adafruit.com"
-  #define AIO_SERVERPORT 1833
+  #define AIO_SERVERPORT 1883
   #define AIO_USERNAME "mauriciov99" 
-  #define AIO_KEY "thisisarandomstringforakey" //replace
-/*      PUT AIO KEYS IN IGNORE FILE       */
+ // #define AIO_KEY "aio_CMIN24MCyGihmUxIESA1Y94XTF7E"
 
 /*      for DFRobot mp3 player      */
 DFRobotDFPlayerMini myDFP;
@@ -36,19 +36,16 @@ int i;
 SdFat SD;
 File file;
   #define SD_CS_PIN SS
-  #define error(msg) sd.errorHalt(msg)
+ // #define error(msg) sd.errorHalt(msg)
 
 /*      for subscribing | publishing        */
 TCPClient TheClient;
 Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY);
-Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
+//Adafruit_MQTT_Subscribe subData = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/ "); // put feed if any subscription needed
 Adafruit_MQTT_Publish PubBME = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_BME");
 Adafruit_MQTT_Publish PubMQ9 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_MQ-9");
 Adafruit_MQTT_Publish PubAQ = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Smart_Helmet_AirQuality");
 unsigned long last;
-
-/*    for Air Quality Sensor      */
-AirQualitySensor senseAQ(A3);
 
 /*    for NeoPixels       */
   #define PIXEL_PIN A1
@@ -61,6 +58,7 @@ bool pixelState = false;
 int Bpin = D2;
 
 /*    for AirQualitySensor use    */
+AirQualitySensor senseAQ(A3);
 int quality;
 int AQvalue;
 int qualityValue;
@@ -90,7 +88,7 @@ void setup() {
   delay(100); // waiting for serial monitor to initialize 
   Wire.begin();
 
-  last = 0; // for MQTT subscription timer. 
+  last = 0; // for MQTT publish timer. 
 
   pixel.begin();
   pixel.clear();
@@ -121,28 +119,24 @@ void setup() {
 
 void loop() {
 //MQTT_connect(); // the name for the function has changed
+  qualityValue = 3;
+  MQval = 3;
+  temp = 110;
+  MQTTConnect();
+  SyncTime();
   LEDBrightness();
-  HighQualityLED();
-  delay(200);
- // BMERead();
-  //myDFP.playMp3Folder(4); //switch all DFP functions to playMP3Folder
-  //delay(10000);
- //MQ9Read();
- //Serial.printf("mqval: %i COppm: %0.2f\n",MQval,COppm);
- //delay(500);
+  WarningMessage();
+ // MQTTPublish();
+  //myDFP.playMp3Folder(3); //switch all DFP functions to playMP3Folder
+  //delay(60000);
+
 }
 
 void LEDBrightness(){ // function for using the photoresistor to adjust the brightness of the NeoPixels to be relative to the lighting of the enviornment.
   int pVal;
   int pPin = A2;
   pVal = analogRead(pPin);  // dont have pinmode in setup but works anyways?
-  //luminoscity = map(pVal, 40, 3000,10,255);
   luminoscity = map(pVal,800,4096,10,255);
-  //Serial.println(pVal);
-// covered is 4095
-// realistic light is ~1000
-// flashlight over it is 800
-//flashlight on top of it is ~300
 }  
 void HighQualityLED(){
   if(pixelState){
@@ -197,17 +191,6 @@ void DangerLED(){
   }
 }
 
-void MQTTPublish(){ // function for publishing sensor values to adafruit.io
-  if((millis()-last)>15000){ // set to publish every 15 seconds, can be adjusted to publish however often you want.
-    if(mqtt.Update()){
-      PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
-      PubMQ9.publish(MQval);
-      PubAQ.publish(qualityValue);
-    }
-  last = millis();
-  }
-}
-
 /*      function for starting up the connection to MQTT. dont forget to do IFTTT       */
 void MQTTConnect(){
   int8_t ret;
@@ -221,7 +204,18 @@ void MQTTConnect(){
     mqtt.disconnect();
     delay(5000);
   }
-  Serial.println("MQTT connected?");
+  Serial.println("MQTT connected!");
+}
+
+void MQTTPublish(){ // function for publishing sensor values to adafruit.io
+  if((millis()-last)>15000){ // set to publish every 15 seconds, can be adjusted to publish however often you want. // put MQTTconnect above this function
+    if(mqtt.Update()){
+      PubBME.publish(temp); // used to publish temperature, but can also be used to publish all other readable BME values
+      PubMQ9.publish(MQval);
+      PubAQ.publish(qualityValue);
+    }
+  last = millis();
+  }
 }
 
 /*        function for the airquality sensor        */
@@ -267,7 +261,7 @@ void BMERead(){
 }
 
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
-  file = SD.open("DataLog.csv", FILE_WRITE);
+  file = SD.open("DataLog.txt", FILE_WRITE);
   static int lastQualityValue;
   static int lastMQval;
   if(qualityValue == lastQualityValue && lastMQval == MQval){
@@ -277,7 +271,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     lastQualityValue = qualityValue;
     lastMQval = MQval;
   }
-  if(qualityValue>=3 && MQval<=2){ // statement for high air quality pollution
+  if(qualityValue>=3 && MQval<=3){ // statement for high air quality pollution
     MidQualityLED();
     if(file){
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
@@ -347,7 +341,7 @@ void SyncTime(){ // syncing particle clock to cloud clock to get accurate time f
   TimeOnly.toCharArray(currentTime,9);
 }
 
-void  enableButton() //ISR for switching the neopixels on or off
+void enableButton() //ISR for switching the neopixels on or off
 {
   pixelState = !pixelState;
 }
