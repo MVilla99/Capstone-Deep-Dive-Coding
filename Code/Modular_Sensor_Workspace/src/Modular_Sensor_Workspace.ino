@@ -34,7 +34,7 @@ DFRobotDFPlayerMini myDFP;
 SdFat SD;
 File file;
   #define SD_CS_PIN SS
- // #define error(msg) sd.errorHalt(msg)
+  #define error(msg) sd.errorHalt(msg)
 
 /*      for subscribing | publishing        */
 TCPClient TheClient;
