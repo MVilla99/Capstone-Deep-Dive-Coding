@@ -69,7 +69,7 @@ unsigned long last;
 
 /*    for NeoPixels       */
   #define PIXEL_PIN A1
-  #define PIXEL_COUNT 2
+  #define PIXEL_COUNT 3
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int luminoscity;
@@ -138,14 +138,20 @@ void setup() {
 }
 
 void loop() {
-  qualityValue = 3;
-  MQval = 3;
+  //qualityValue = 3;
+  //MQval = 3;
   temp = 110;
+  LEDBrightness();
   MQTTConnect();
   SyncTime();
-  LEDBrightness();
-  WarningMessage();
- // MQTTPublish();
+  Serial.println(pixelState);
+  //MidQualityLED();
+ MQ9Read();
+ AirQualityRead();
+ WarningMessage();
+ MQTTPublish();
+ Serial.println(COppm);
+ Serial.printf("mqval: %i aqval: %i\n",MQval,qualityValue);
   //myDFP.playMp3Folder(3); //switch all DFP functions to playMP3Folder
   //delay(60000);
 
@@ -162,7 +168,8 @@ void HighQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0,green);
     pixel.setPixelColor(1,green);
-    pixel.setBrightness(luminoscity);  // replace with luminoscity  
+    pixel.setPixelColor(2, green);
+    pixel.setBrightness(luminoscity);
     pixel.show();
   }
   else if(!pixelState){
@@ -175,6 +182,7 @@ void MidQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0, yellow);
     pixel.setPixelColor(1, yellow);
+    pixel.setPixelColor(2, yellow);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -188,6 +196,7 @@ void LowQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0, orange);
     pixel.setPixelColor(1, orange);
+    pixel.setPixelColor(2, orange);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -201,6 +210,7 @@ void DangerLED(){
     pixel.clear();
     pixel.setPixelColor(0, red);
     pixel.setPixelColor(1, red);
+    pixel.setPixelColor(2, red);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -282,9 +292,6 @@ void BMERead(){
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
   static int lastQualityValue;
   static int lastMQval;
-  Serial.println(qualityValue);
-  Serial.print(lastQualityValue);
-  Serial.print(lastMQval);
   if(qualityValue == lastQualityValue && lastMQval == MQval){
     lastQualityValue = qualityValue;
     lastMQval = MQval;
@@ -301,8 +308,8 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     if(file){
       Serial.printf("Air Quality warning. AQ read: %i \n", qualityValue); 
       file.printf("Air Quality Read: %i timestamp: %s \n", qualityValue,currentDateTime);
-      //file.println(currentDateTime);
-      //file.close();
+      myDFP.playMp3Folder(2);
+      delay(4500);
     }
     if(!file){ // if theres an error with the file, log it
       Serial.println("AQ write error");
@@ -312,25 +319,21 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     LowQualityLED();
     if(file){
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", MQval);
-      file.printf("MQ-9 read: %i \n", MQval);
-      file.print(currentDateTime);
-      file.close();
-      // myDFP.playFolder(11, ); // switch to the mp3folder function
-     // delay( ); // each DFP audio file needs a delay in seconds to let the audio file play
+      file.printf("MQ-9 read: %i timestamp: %s \n", MQval,currentDateTime);
+      myDFP.playMp3Folder(1);
+      delay(6500); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
     }
   }
-    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
+    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings // maybe (&& (lastqualityValue&&lastMQval != <2))
       HighQualityLED();
       if(file){
         Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
-        file.println("nominal readings. nothing to record");
-        file.print(currentDateTime);
-        file.close();
-        // myDFP.playFolder(11, );
-        // delay( );
+        file.printf("nominal readings. nothing to record. timestamp: %s \n", currentDateTime);
+        myDFP.playMp3Folder(5);
+        delay(4500);
       }
       if(!file){
         Serial.println("nominal readings write error.");
@@ -340,11 +343,9 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     DangerLED();
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
-      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i \n", MQval, qualityValue, temp);
-      file.print(currentDateTime);
-      file.close();
-     // myDFP.playFolder(11, );
-     // delay( );
+      file.printf("High Danger. MQ-9: %i AQ: %i Temp %i timestamp: %s\n", MQval, qualityValue, temp, currentDateTime);
+      myDFP.playMp3Folder(6);
+      delay(6500);
     }
     if(!file){
       Serial.println("High danger write error.");

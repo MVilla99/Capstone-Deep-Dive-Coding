@@ -116,14 +116,20 @@ void setup() {
 }
 
 void loop() {
-  qualityValue = 3;
-  MQval = 3;
+  //qualityValue = 3;
+  //MQval = 3;
   temp = 110;
+  LEDBrightness();
   MQTTConnect();
   SyncTime();
-  LEDBrightness();
-  WarningMessage();
- // MQTTPublish();
+  Serial.println(pixelState);
+  //MidQualityLED();
+ MQ9Read();
+ AirQualityRead();
+ WarningMessage();
+ MQTTPublish();
+ Serial.println(COppm);
+ Serial.printf("mqval: %i aqval: %i\n",MQval,qualityValue);
   //myDFP.playMp3Folder(3); //switch all DFP functions to playMP3Folder
   //delay(60000);
 
@@ -299,7 +305,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
       Serial.println("MQ-9 write error");
     }
   }
-    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
+    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings // maybe (&& (lastqualityValue&&lastMQval != <2))
       HighQualityLED();
       if(file){
         Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
