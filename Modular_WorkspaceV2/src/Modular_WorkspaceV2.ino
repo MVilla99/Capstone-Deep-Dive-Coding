@@ -47,7 +47,7 @@ unsigned long last;
 
 /*    for NeoPixels       */
   #define PIXEL_PIN A1
-  #define PIXEL_COUNT 2
+  #define PIXEL_COUNT 3
   #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel pixel(PIXEL_COUNT,PIXEL_PIN,PIXEL_TYPE);
 int luminoscity;
@@ -140,6 +140,7 @@ void HighQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0,green);
     pixel.setPixelColor(1,green);
+    pixel.setPixelColor(2, green);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -153,6 +154,7 @@ void MidQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0, yellow);
     pixel.setPixelColor(1, yellow);
+    pixel.setPixelColor(2, yellow);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -166,6 +168,7 @@ void LowQualityLED(){
     pixel.clear();
     pixel.setPixelColor(0, orange);
     pixel.setPixelColor(1, orange);
+    pixel.setPixelColor(2, orange);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
@@ -179,6 +182,7 @@ void DangerLED(){
     pixel.clear();
     pixel.setPixelColor(0, red);
     pixel.setPixelColor(1, red);
+    pixel.setPixelColor(2, red);
     pixel.setBrightness(luminoscity);
     pixel.show();
   }
