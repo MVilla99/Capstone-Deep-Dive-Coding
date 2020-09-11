@@ -10,7 +10,6 @@
  * Author: Mauricio Villa
  * Date: 12 - August - 2020
  */
-//SYSTEM_MODE(SEMI_AUTOMATIC)
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_SSD1306.h>
@@ -44,7 +43,7 @@ void BMERead();
 void WarningMessage();
 void SyncTime();
 void enableButton();
-#line 26 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Modular_WorkspaceV2/src/Modular_WorkspaceV2.ino"
+#line 25 "c:/Users/mauri/Documents/IoTc2/Capstone-Deep-Dive-Coding/Modular_WorkspaceV2/src/Modular_WorkspaceV2.ino"
 #define AIO_SERVER "io.adafruit.com"
   #define AIO_SERVERPORT 1883
   #define AIO_USERNAME "mauriciov99" 
@@ -130,28 +129,26 @@ void setup() {
   } 
   Serial.println("DFPlayer init");
 
-/*                          commented this chunk out while i tested the bme and other sensors.
-  mqtt.subscribe(&subData);
-  */
- Serial.println("Initialization finished");
- attachInterrupt(Bpin, enableButton, RISING);
+  Serial.println("Initialization finished");
+  attachInterrupt(Bpin, enableButton, RISING); //interupt for switching the NeoPixels on and off
 }
 
 void loop() {
   //qualityValue = 3;
   //MQval = 3;
   temp = 110;
+  pixelState= true; // for demo purposes
   LEDBrightness();
   MQTTConnect();
   SyncTime();
   Serial.println(pixelState);
   //MidQualityLED();
- MQ9Read();
- AirQualityRead();
- WarningMessage();
- MQTTPublish();
- Serial.println(COppm);
- Serial.printf("mqval: %i aqval: %i\n",MQval,qualityValue);
+  MQ9Read();
+  AirQualityRead();
+  WarningMessage();
+  MQTTPublish();
+  Serial.println(COppm);
+  Serial.printf("mqval: %i aqval: %i\n",MQval,qualityValue);
   //myDFP.playMp3Folder(3); //switch all DFP functions to playMP3Folder
   //delay(60000);
 
@@ -164,7 +161,7 @@ void LEDBrightness(){ // function for using the photoresistor to adjust the brig
   luminoscity = map(pVal,800,4096,10,255);
 }  
 void HighQualityLED(){
-  if(pixelState){
+  if(pixelState){ // if the boolean of pixelState is true, show the color. 
     pixel.clear();
     pixel.setPixelColor(0,green);
     pixel.setPixelColor(1,green);
@@ -253,7 +250,7 @@ void AirQualityRead(){
   AQvalue = senseAQ.getValue();
 
   if(quality == AirQualitySensor::FORCE_SIGNAL){
-    qualityValue = 4;
+    qualityValue = 4; // setting the quality value as a integer to be used in the warning message code
   }
   else if(quality == AirQualitySensor::HIGH_POLLUTION){
     qualityValue = 3;
@@ -268,12 +265,12 @@ void AirQualityRead(){
 
 /*      function for the MQ-9 sensor      */
 void MQ9Read(){
-  Wire.beginTransmission(MQaddress);
+  Wire.beginTransmission(MQaddress); // begins a transmission at whatever MQ9 hex address is 
   Wire.write(0x00);
   Wire.endTransmission(false);
   Wire.requestFrom(MQaddress ,2, true);
   MQData[0] = Wire.read();
-  MQData[1] = Wire.read();
+  MQData[1] = Wire.read(); // storing bytes of data to an array
   MQrawADC = ((MQData[0] & 0x0F)*256)+MQData[1];
   COppm = (1000.0/4096.0)*MQrawADC +10.0;
   //Serial.printf("CO: %0.2f ppm \n",COppm);
@@ -292,7 +289,7 @@ void BMERead(){
 void WarningMessage(){ // this function reads the sensory data and outputs a meassage accordingly 
   static int lastQualityValue;
   static int lastMQval;
-  if(qualityValue == lastQualityValue && lastMQval == MQval){
+  if(qualityValue == lastQualityValue && lastMQval == MQval){ //if the values are the same, dont record data. This keeps the SD card from logging over and over and the MP3 playing over and over 
     lastQualityValue = qualityValue;
     lastMQval = MQval;
     return;
@@ -320,14 +317,14 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
     if(file){
       Serial.printf("MQ-9 warning. MQ-9 read: %i \n", MQval);
       file.printf("MQ-9 read: %i timestamp: %s \n", MQval,currentDateTime);
-      myDFP.playMp3Folder(1);
+      myDFP.playMp3Folder(1); // play a specified folder under the MP3 file on the micro-SD card in the MP3 player
       delay(6500); // each DFP audio file needs a delay in seconds to let the audio file play
     }
     if(!file){
       Serial.println("MQ-9 write error");
     }
   }
-    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings // maybe (&& (lastqualityValue&&lastMQval != <2))
+    else if(qualityValue<=2&&MQval<=2){ // function for normal/clean readings
       HighQualityLED();
       if(file){
         Serial.printf("nominal reads. MQ9: %i AQ: %i Temperature: \n", MQval, qualityValue,temp);
@@ -339,7 +336,7 @@ void WarningMessage(){ // this function reads the sensory data and outputs a mea
         Serial.println("nominal readings write error.");
       }
     }
-  else if(qualityValue>=3 && MQval>=3 && temp>=100){ //statement for high levels of all sensors Ask Brian about the temp with the stuff at the top of this function
+  else if(qualityValue>=3 && MQval>=3 && temp>=100){
     DangerLED();
     if(file){
       Serial.printf("DANGER IMMINANT. MQ-9: %i AQ: %i Temp: %i \n", MQval, qualityValue, temp); 
